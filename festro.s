@@ -21,6 +21,10 @@
 **************************************************
 srcPtr	equz $00
 dstPtr	equz $02
+** alternate mapping for fire averaging routine
+srcPtrL	equz $02
+srcPtrR	equz $04
+srcPtrD	equz $06
 
 
 **************************************************
@@ -41,135 +45,71 @@ DemoSubroutineTable
 	dw HandleProdrop
 	dw HandleSwipeWrite
 	dw HandleProdrop
+	dw HandleFireState1
 	dw P8Quit
 
+HandleFireState1
+	sta LORES
+	jsr CLRLORES
+:loop	jsr FirePass
+	bra :loop
 
+FirePass
+	jsr MakeHeat
+	jsr Scroll8
+	jsr Average8
+	jsr DrawBufFullScreen
+	rts
 
-HandleSwipeWrite
-]initSwipe
-	ldx #$23	; reset line indexes
-:clearLoop	stz _swipeLinesX,x	;
-	dex
-	bne :clearLoop
-	stz _swipeActive	; reset overall index
-
-* @todo make parameters ******************************
-	lda #FireTextHeight
-	sta _swipeMaxHeight	; set max height
-	lda #FireTextWidth
-	sta _swipeMaxWidth	; set max width
-	lda #5
-	sta _swipeXOffset	; set x position
-	lda #6
-	sta _swipeYOffset	; set y position
-
-** DA LOOP!!! does one full pass of all lines.. this is the OUTERMOST LOOP
-:swipeLoop
-	lda #1
-	sta _swipeLinesDone	; set true... flips false every time we find a char
-	lda _swipeMaxHeight	; increment active set - once per loop, up to max height
-	cmp _swipeActive
-	beq :swipeMaxHit
-	inc _swipeActive	
-:swipeMaxHit
-	stz _swipeCurrLine	; start with line 0
-
-:swipeLineLoop
-	lda _swipeCurrLine
-	ldx _swipeMaxWidth	
-	jsr Multiply8x8	; multiply bufferwidth * linenumber
-
-	sta srcPtr
-	stx srcPtr+1		; store our multiplication offset
-	clc		
-	adc #FireText		; and add the buffer location
-	sta srcPtr
-	lda srcPtr+1
-	adc #>FireText
-	sta srcPtr+1		; srcPtr points to first character of that line in buffer
-
-	lda _swipeCurrLine
-	clc
-	adc _swipeYOffset	; linenumber + y-offset
-	asl		; x2 for pointer
-              tax	
-	lda LoLineTable,x           ; now convert to ZP pointer
-	clc
-	adc _swipeXOffset	; but also add our screen x-offset
-	sta dstPtr
-	bcc :noAdd
-	lda LoLineTable+1,x	; rolled our low-byte so add 1 to high-byte
-	inc 
-	bra :skip
-:noAdd	lda LoLineTable+1,x	
-:skip	sta dstPtr+1		; destptr points to first character of where this line is positioned on screen
-
-	ldx _swipeCurrLine
-	lda _swipeLinesX,x	
-	tay		; get current character index
-	lda (srcPtr),y	; get char from buffer
-	beq :lineIsDone	; was it #$00?
-	sta (dstPtr),y	; store char to screen
-	inc _swipeLinesX,x	; next char
-	stz _swipeLinesDone	; found a char so we always set this false
-	
-
-:lineIsDone	
-	inc _swipeCurrLine
-	lda _swipeCurrLine
-	cmp _swipeActive
-	bne :swipeLineLoop
-	
-	lda #20
-	tax
-	tay
-	jsr SimpleWait
-
-	lda _swipeLinesDone
-	beq :swipeLoop
-	inc GDemoState
-	jmp DemoMain
-* for (line =0 ; line < active	; line ++ ) {
-*  sourceptr = bufferwidth * line
-*  destPtr = ^lores[line+yoffset] + xoffset
-*  ldy arrayX[line]
-*  lda (sourceptr),y
-*  if (a != 0)
-*   sta (destptr),y
-*   inc arrayX[line]
-*  else
-*   linesdone ++
-* }
-* if (linesdone == maxlines) return
-* else swipepassloop
-_swipeLinesDone	db 0 ; how many lines are fully complete
-_swipeCurrLine	db 0	; drawing loop line index
-_swipeActive	db 0	; number of lines to be updating
-_swipeLinesX	ds 24	; array with x position of each line
-_swipeMaxHeight	db #$0	; set # lines in the source buffer
-_swipeMaxWidth	db #0	; set # characters per line in the source buffer
-_swipeXOffset	db #$0	; screen offset for placement
-_swipeYOffset	db #$0	; screen offset for placement
-
-
-FireTextHeight equ #12	; buffer height
-FireTextWidth	equ #34	; buffer width
-
+**************************************************
+* Color look up table.
+* Fire values 0 through F get translated to these
+**************************************************
 	ds \
-FireText	asc "    _______              ______  ",00
-	asc "   / ____(_)_______     /  _/ /_ ",00
-	asc "  / /_  / / ___/ _ \    / // __/ ",00
-	asc " / __/ / / /  /  __/  _/ // /_   ",00
-	asc "/_/   /_/_/   \___/  /___/\__/   ",00
-	asc "                                 ",00
-	asc "         __  __      __          ",00
-	asc "        / / / /___  / /          ",00
-	asc "       / / / / __ \/ /           ",00
-	asc "      / /_/ / /_/ /_/            ",00
-	asc "      \____/ .___(_)             ",00
-	asc "          /_/                    ",00
+*ColorIdx	ds 16	; we copy the palettes below to here
+ColorIdx		; fake it for now
+	; bottom / top color
+ColorIdxColor	dfb #$00	; BLK / BLK
+	dfb #$22	; D.BLU / D.BLU
+	dfb #$55	; D.GRY / D.GRY
+	dfb #$55	; D.GRY / D.GRY
+	dfb #$12	; RED / D.BLUE
+	dfb #$18	; RED / BROWN
+	dfb #$98	; ORNG / BROWN
+	dfb #$99	; ORNG / ORNG
+	dfb #$b9	; PINK / ORNG
+	dfb #$Db	; YELO / PINK
+	dfb #$DD	; YELO / YELO
+	dfb #$DD	; YELO / YELO
+	dfb #$FD	; WHITE / YELO
+	dfb #$FF	; WHITE / WHITE
+	dfb #$FF	; WHITE / WHITE
+	dfb #$FF	; WHITE / WHITE
 
+ColorIdxMono
+	dfb #$00	; BLK / BLK
+	dfb #$11	; D.BLU / D.BLU
+	dfb #$08	; D.GRY / D.GRY
+	dfb #$42	; D.GRY / D.GRY
+	dfb #$43	; RED / D.BLUE
+	dfb #$53	; RED / BROWN
+	dfb #$55	; ORNG / BROWN
+	dfb #$65	; ORNG / ORNG
+	dfb #$67	; PINK / ORNG
+	dfb #$97	; YELO / PINK
+	dfb #$F7	; YELO / YELO
+	dfb #$FD	; YELO / YELO
+	dfb #$FF	; WHITE / YELO
+	dfb #$FF	; WHITE / WHITE
+	dfb #$FF	; WHITE / WHITE
+	dfb #$FF	; WHITE / WHITE
 
+WIDTH	equ #40
+HEIGHT	equ #24
+	ds \
+FBUF	ds #WIDTH*#HEIGHT+#WIDTH	;extra line gets coals
+FBUFLEN	equ #WIDTH*#HEIGHT
+LASTLINE	equ #WIDTH*#HEIGHT-#WIDTH+FBUF
 
 
 **************************************************
@@ -409,6 +349,130 @@ _prodropState	db 0	; starts with 0, which is scan mode
 
 
 
+HandleSwipeWrite
+]initSwipe
+	ldx #$23	; reset line indexes
+:clearLoop	stz _swipeLinesX,x	;
+	dex
+	bne :clearLoop
+	stz _swipeActive	; reset overall index
+
+* @todo make parameters ******************************
+	lda #FireTextHeight
+	sta _swipeMaxHeight	; set max height
+	lda #FireTextWidth
+	sta _swipeMaxWidth	; set max width
+	lda #5
+	sta _swipeXOffset	; set x position
+	lda #6
+	sta _swipeYOffset	; set y position
+
+** DA LOOP!!! does one full pass of all lines.. this is the OUTERMOST LOOP
+:swipeLoop
+	lda #1
+	sta _swipeLinesDone	; set true... flips false every time we find a char
+	lda _swipeMaxHeight	; increment active set - once per loop, up to max height
+	cmp _swipeActive
+	beq :swipeMaxHit
+	inc _swipeActive	
+:swipeMaxHit
+	stz _swipeCurrLine	; start with line 0
+
+:swipeLineLoop
+	lda _swipeCurrLine
+	ldx _swipeMaxWidth	
+	jsr Multiply8x8	; multiply bufferwidth * linenumber
+
+	sta srcPtr
+	stx srcPtr+1		; store our multiplication offset
+	clc		
+	adc #FireText		; and add the buffer location
+	sta srcPtr
+	lda srcPtr+1
+	adc #>FireText
+	sta srcPtr+1		; srcPtr points to first character of that line in buffer
+
+	lda _swipeCurrLine
+	clc
+	adc _swipeYOffset	; linenumber + y-offset
+	asl		; x2 for pointer
+              tax	
+	lda LoLineTable,x           ; now convert to ZP pointer
+	clc
+	adc _swipeXOffset	; but also add our screen x-offset
+	sta dstPtr
+	bcc :noAdd
+	lda LoLineTable+1,x	; rolled our low-byte so add 1 to high-byte
+	inc 
+	bra :skip
+:noAdd	lda LoLineTable+1,x	
+:skip	sta dstPtr+1		; destptr points to first character of where this line is positioned on screen
+
+	ldx _swipeCurrLine
+	lda _swipeLinesX,x	
+	tay		; get current character index
+	lda (srcPtr),y	; get char from buffer
+	beq :lineIsDone	; was it #$00?
+	sta (dstPtr),y	; store char to screen
+	inc _swipeLinesX,x	; next char
+	stz _swipeLinesDone	; found a char so we always set this false
+	
+
+:lineIsDone	
+	inc _swipeCurrLine
+	lda _swipeCurrLine
+	cmp _swipeActive
+	bne :swipeLineLoop
+	
+	lda #20
+	tax
+	tay
+	jsr SimpleWait
+
+	lda _swipeLinesDone
+	beq :swipeLoop
+	inc GDemoState
+	jmp DemoMain
+* for (line =0 ; line < active	; line ++ ) {
+*  sourceptr = bufferwidth * line
+*  destPtr = ^lores[line+yoffset] + xoffset
+*  ldy arrayX[line]
+*  lda (sourceptr),y
+*  if (a != 0)
+*   sta (destptr),y
+*   inc arrayX[line]
+*  else
+*   linesdone ++
+* }
+* if (linesdone == maxlines) return
+* else swipepassloop
+_swipeLinesDone	db 0 ; how many lines are fully complete
+_swipeCurrLine	db 0	; drawing loop line index
+_swipeActive	db 0	; number of lines to be updating
+_swipeLinesX	ds 24	; array with x position of each line
+_swipeMaxHeight	db #$0	; set # lines in the source buffer
+_swipeMaxWidth	db #0	; set # characters per line in the source buffer
+_swipeXOffset	db #$0	; screen offset for placement
+_swipeYOffset	db #$0	; screen offset for placement
+
+
+FireTextHeight equ #12	; buffer height
+FireTextWidth	equ #34	; buffer width
+
+	ds \
+FireText	asc "    _______              ______  ",00
+	asc "   / ____(_)_______     /  _/ /_ ",00
+	asc "  / /_  / / ___/ _ \    / // __/ ",00
+	asc " / __/ / / /  /  __/  _/ // /_   ",00
+	asc "/_/   /_/_/   \___/  /___/\__/   ",00
+	asc "                                 ",00
+	asc "         __  __      __          ",00
+	asc "        / / / /___  / /          ",00
+	asc "       / / / / __ \/ /           ",00
+	asc "      / /_/ / /_/ /_/            ",00
+	asc "      \____/ .___(_)             ",00
+	asc "          /_/                    ",00
+
 
 **************************************************
 * Called by DemoMain
@@ -434,6 +498,8 @@ qparms	dfb 4
 	dfb 0
 	da $0000
 
+
+
 **************************************************
 * Awesome PRNG thx to White Flame (aka David Holz)
 **************************************************
@@ -447,6 +513,368 @@ GetRand
 	rts
 
 _randomByte	db 0
+
+
+**************************************************
+* Awesome PRNG thx to White Flame (aka David Holz)
+**************************************************
+GetRandHot
+	lda RND
+	beq :doEor
+	asl
+	bcc :noEor
+:doEor	eor #$1d
+:noEor	sta RND
+	cmp #$90	; FIRE RATIO
+	bcs :hot
+:not	lda #$0f
+	rts
+:hot	lda #$00
+	rts
+
+**************************************************
+* Very simple routine to lay down a line where
+* all values are either 0 (cold) or F (hot)
+**************************************************
+MakeHeat
+	lda #0
+	sta LASTLINE	;FORCE CORNERS BLACK
+	sta LASTLINE+#39
+	;EXTRA LINE
+	sta LASTLINE+#WIDTH	;FORCE CORNERS BLACK
+	sta LASTLINE+#WIDTH+#39
+
+	ldx #WIDTH-2
+:mloop	jsr GetRandHot
+	sta LASTLINE,x
+	jsr GetRandHot
+	sta LASTLINE+#WIDTH,x
+	dex
+	bne :mloop
+
+	rts
+
+**************************************************
+* Scrolls Fire buffer up one line
+**************************************************
+Scroll8   
+*set source
+	lda #FBUF+WIDTH
+	sta srcPtr
+	lda #>FBUF+WIDTH
+	sta srcPtr+1
+
+*set destination
+	lda #FBUF
+	sta dstPtr
+	lda #>FBUF
+	sta dstPtr+1
+
+:movfwd	ldy #0
+	ldx #0
+	cpx #>FBUFLEN-WIDTH
+	beq :frag
+:page	lda (srcPtr),y
+	sta (dstPtr),y
+	iny
+	bne :page
+	inc srcPtr+1
+	inc dstPtr+1
+	inx
+	cpx #>FBUFLEN-WIDTH
+	bne :page
+:frag	cpy #FBUFLEN-WIDTH
+	beq :doneCopy
+	lda (srcPtr),y
+	sta (dstPtr),y
+	iny
+	bne :frag
+:doneCopy	rts
+
+
+**************************************************
+* Averaage Fire buffer - this is where the magic happens
+**************************************************
+Average8  
+	lda #FBUF	; pointer to pixel
+	sta srcPtr
+	lda #>FBUF
+	sta srcPtr+1
+
+	lda #FBUF-#1	; pointer to pixel - 1
+	sta srcPtrL
+	lda #>FBUF-#1
+	sta srcPtrL+1
+
+	lda #FBUF+#1	; pointer to pixel + 1
+	sta srcPtrR
+	lda #>FBUF+#1
+	sta srcPtrR+1
+
+	lda #FBUF+#WIDTH
+	sta srcPtrD
+	lda #>FBUF+#WIDTH
+	sta srcPtrD+1
+
+	ldx #0	; lines
+
+:avgLine	ldy #WIDTH-1
+:lineLoop
+	clc
+	lda (srcPtr),y	;0
+	adc (srcPtrL),y	;-1
+	adc (srcPtrR),y	;+1
+	adc (srcPtrD),y	;1+width
+	beq :skipDec	; all zeros then skip everything
+	dec	; makes fire dissipate faster
+	lsr
+	lsr
+:skipDec	sta (srcPtr),y	;0
+	dey
+	bne :lineLoop
+	cpx #HEIGHT
+	beq :doneLines
+	inx	;next line
+
+	;shift pointers up a "line"
+	lda srcPtrD+1
+	sta srcPtr+1
+	sta srcPtrL+1	;\_ also copy this for math below.. not sure
+	sta srcPtrR+1	;/    if it would just be better to add all pointers
+	;     or go back to two pointers with iny/dey
+	lda srcPtrD
+	sta srcPtr
+
+	;left pixel
+	cmp #0
+	bne :noPage	;if A != 0 we aren't crossing pages
+	brk
+	dec
+	sta srcPtrL
+	dec srcPtrL+1
+	bra :rightPixel
+:noPage	dec
+	sta srcPtrL
+
+:rightPixel	lda srcPtr
+	inc
+	beq :zeroFlip	;0
+	sta srcPtrR
+	bra :bottomPixel
+:zeroFlip	sta srcPtrR
+	inc srcPtrR+1
+
+:bottomPixel	;add to bottom line pointer
+	lda srcPtrD
+	clc
+	adc #WIDTH
+	sta srcPtrD
+	lda srcPtrD+1
+	adc #0
+	sta srcPtrD+1
+	bra :avgLine
+
+:doneLines    rts
+
+
+
+**************************************************
+* Draw entire buffer on screen
+**************************************************
+DrawBufFullScreen
+	ldx #$0
+:loop0    ldy FBUF,x
+	lda ColorIdx,y
+	sta Lo01,x
+	inx
+	cpx #WIDTH
+	bne :loop0
+
+	ldx #$0
+:loop1    ldy WIDTH*1+FBUF,x
+	lda ColorIdx,y
+	sta Lo02,x
+	inx
+	cpx #WIDTH
+	bne :loop1
+
+	ldx #$0
+:loop2    ldy WIDTH*2+FBUF,x
+	lda ColorIdx,y
+	sta Lo03,x
+	inx
+	cpx #WIDTH
+	bne :loop2
+
+	ldx #$0
+:loop3    ldy WIDTH*3+FBUF,x
+	lda ColorIdx,y
+	sta Lo04,x
+	inx
+	cpx #WIDTH
+	bne :loop3
+
+	ldx #$0
+:loop4    ldy WIDTH*4+FBUF,x
+	lda ColorIdx,y
+	sta Lo05,x
+	inx
+	cpx #WIDTH
+	bne :loop4
+
+	ldx #$0
+:loop5    ldy WIDTH*5+FBUF,x
+	lda ColorIdx,y
+	sta Lo06,x
+	inx
+	cpx #WIDTH
+	bne :loop5
+
+	ldx #$0
+:loop6    ldy WIDTH*6+FBUF,x
+	lda ColorIdx,y
+	sta Lo07,x
+	inx
+	cpx #WIDTH
+	bne :loop6
+
+	ldx #$0
+:loop7    ldy WIDTH*7+FBUF,x
+	lda ColorIdx,y
+	sta Lo08,x
+	inx
+	cpx #WIDTH
+	bne :loop7
+
+	ldx #$0
+:loop8    ldy WIDTH*8+FBUF,x
+	lda ColorIdx,y
+	sta Lo09,x
+	inx
+	cpx #WIDTH
+	bne :loop8
+
+	ldx #$0
+:loop9    ldy WIDTH*9+FBUF,x
+	lda ColorIdx,y
+	sta Lo10,x
+	inx
+	cpx #WIDTH
+	bne :loop9
+
+	ldx #$0
+:loop10   ldy WIDTH*#10+FBUF,x
+	lda ColorIdx,y
+	sta Lo11,x
+	inx
+	cpx #WIDTH
+	bne :loop10
+
+	ldx #$0
+:loop11   ldy WIDTH*#11+FBUF,x
+	lda ColorIdx,y
+	sta Lo12,x
+	inx
+	cpx #WIDTH
+	bne :loop11
+
+	ldx #$0
+:loop12   ldy WIDTH*#12+FBUF,x
+	lda ColorIdx,y
+	sta Lo13,x
+	inx
+	cpx #WIDTH
+	bne :loop12
+
+	ldx #$0
+:loop13   ldy WIDTH*#13+FBUF,x
+	lda ColorIdx,y
+	sta Lo14,x
+	inx
+	cpx #WIDTH
+	bne :loop13
+
+	ldx #$0
+:loop14   ldy WIDTH*#14+FBUF,x
+	lda ColorIdx,y
+	sta Lo15,x
+	inx
+	cpx #WIDTH
+	bne :loop14
+
+	ldx #$0
+:loop15   ldy WIDTH*#15+FBUF,x
+	lda ColorIdx,y
+	sta Lo16,x
+	inx
+	cpx #WIDTH
+	bne :loop15
+
+	ldx #$0
+:loop16   ldy WIDTH*#16+FBUF,x
+	lda ColorIdx,y
+	sta Lo17,x
+	inx
+	cpx #WIDTH
+	bne :loop16
+
+	ldx #$0
+:loop17   ldy WIDTH*#17+FBUF,x
+	lda ColorIdx,y
+	sta Lo18,x
+	inx
+	cpx #WIDTH
+	bne :loop17
+
+	ldx #$0
+:loop18   ldy WIDTH*#18+FBUF,x
+	lda ColorIdx,y
+	sta Lo19,x
+	inx
+	cpx #WIDTH
+	bne :loop18
+
+	ldx #$0
+:loop19   ldy WIDTH*#19+FBUF,x
+	lda ColorIdx,y
+	sta Lo20,x
+	inx
+	cpx #WIDTH
+	bne :loop19
+
+	ldx #$0
+:loop20   ldy WIDTH*#20+FBUF,x
+	lda ColorIdx,y
+	sta Lo21,x
+	inx
+	cpx #WIDTH
+	bne :loop20
+
+	ldx #$0
+:loop21   ldy WIDTH*#21+FBUF,x
+	lda ColorIdx,y
+	sta Lo22,x
+	inx
+	cpx #WIDTH
+	bne :loop21
+
+	ldx #$0
+:loop22   ldy WIDTH*#22+FBUF,x
+	lda ColorIdx,y
+	sta Lo23,x
+	inx
+	cpx #WIDTH
+	bne :loop22
+
+	ldx #$0
+:loop23   ldy WIDTH*#23+FBUF,x
+	lda ColorIdx,y
+	sta Lo24,x
+	inx
+	cpx #WIDTH
+	bne :loop23
+	rts
+
 
 **************************************************
 * SafeWait
