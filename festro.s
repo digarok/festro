@@ -44,22 +44,57 @@ DemoSubroutineTable
 	dw HandleDigawrite
 	dw HandleProdrop
 	dw HandleSwipeWrite
-	dw HandleProdrop
+	dw HandleLoResInit
+	dw HandleFireState1
+	dw HandleFireStateK
+	dw HandleFireState1
+	dw HandleFireStateK
 	dw HandleFireState1
 	dw P8Quit
 
-HandleFireState1
+HandleLoResInit
 	sta LORES
-	jsr CLRLORES
-:loop	jsr FirePass
-	bra :loop
+	jsr ClearLoRes
+	inc GDemoState
+	jmp DemoMain
 
-FirePass
+HandleFireState1
+	ldx #30
+:loop	jsr FirePass
+	dex
+	bne :loop
+	inc GDemoState
+	jmp DemoMain
+
+HandleFireStateK
+	ldx #$20
+:loop	jsr FirePass2
+	dex
+	bne :loop
+	inc GDemoState
+	jmp DemoMain
+
+
+FirePass	pha
+	phx
 	jsr MakeHeat
 	jsr Scroll8
 	jsr Average8
 	jsr DrawBufFullScreen
+	plx
+	pla
 	rts
+FirePass2	pha
+	phx
+	jsr MakeHeat
+	jsr Scroll8
+	jsr DrawKMask
+	jsr Average8
+	jsr DrawBufFullScreen
+	plx
+	pla
+	rts
+
 
 **************************************************
 * Color look up table.
@@ -104,12 +139,12 @@ ColorIdxMono
 	dfb #$FF	; WHITE / WHITE
 	dfb #$FF	; WHITE / WHITE
 
-WIDTH	equ #40
-HEIGHT	equ #24
+FBufWidth	equ #40
+FBufHeight	equ #24
 	ds \
-FBUF	ds #WIDTH*#HEIGHT+#WIDTH	;extra line gets coals
-FBUFLEN	equ #WIDTH*#HEIGHT
-LASTLINE	equ #WIDTH*#HEIGHT-#WIDTH+FBUF
+FBUF	ds #FBufWidth*#FBufHeight+#FBufWidth	;extra line gets coals
+FBufLen	equ #FBufWidth*#FBufHeight
+FBufLastLine	equ #FBufWidth*#FBufHeight-#FBufWidth+FBUF
 
 
 **************************************************
@@ -125,10 +160,10 @@ HandleDigawrite
 ]writeLoop
 	lda _digawriteString,x
 	beq ]writeDone
-	sta Lo11+17,x
+	sta Lo11+10,x
 	inx
 	phx
-	lda #20
+	lda #18
 	tax
 	tay
 	jsr SimpleWait
@@ -142,7 +177,7 @@ HandleDigawrite
 
 	inc GDemoState
 	jmp DemoMain
-_digawriteString	asc "DiGAROK",00
+_digawriteString	asc "--==>> DiGAROK <<==--",00
 ** Dropper routine - not specific to ProDrop per se
 ** - uses DSEG0
 HandleProdrop
@@ -236,7 +271,7 @@ HandleProdrop
 
 
 :prodropUpdateLoop
-	lda #20
+	lda #16
 	tax
 	tay
 	jsr SimpleWait
@@ -364,7 +399,7 @@ HandleSwipeWrite
 	sta _swipeMaxWidth	; set max width
 	lda #5
 	sta _swipeXOffset	; set x position
-	lda #6
+	lda #3
 	sta _swipeYOffset	; set y position
 
 ** DA LOOP!!! does one full pass of all lines.. this is the OUTERMOST LOOP
@@ -456,15 +491,21 @@ _swipeXOffset	db #$0	; screen offset for placement
 _swipeYOffset	db #$0	; screen offset for placement
 
 
-FireTextHeight equ #12	; buffer height
+FireTextHeight equ #18	; buffer height
 FireTextWidth	equ #34	; buffer width
 
 	ds \
-FireText	asc "    _______              ______  ",00
-	asc "   / ____(_)_______     /  _/ /_ ",00
-	asc "  / /_  / / ___/ _ \    / // __/ ",00
-	asc " / __/ / / /  /  __/  _/ // /_   ",00
-	asc "/_/   /_/_/   \___/  /___/\__/   ",00
+FireText	asc "    __         __                ",00
+	asc "   / /   ___  / /______          ",00
+	asc "  / /   / _ \/ __/ ___/          ",00
+	asc " / /___/  __/ /_(__  )           ",00
+	asc "/_____/\___/\__/____/            ",00
+              asc "                                 ",00
+	asc "     _______              ______ ",00
+	asc "    / ____(_)_______     /  _/ /_",00
+	asc "   / /_  / / ___/ _ \    / // __/",00
+	asc "  / __/ / / /  /  __/  _/ // /_  ",00
+	asc " /_/   /_/_/   \___/  /___/\__/  ",00
 	asc "                                 ",00
 	asc "         __  __      __          ",00
 	asc "        / / / /___  / /          ",00
@@ -473,6 +514,96 @@ FireText	asc "    _______              ______  ",00
 	asc "      \____/ .___(_)             ",00
 	asc "          /_/                    ",00
 
+*********************
+* DEMO ONLY!
+* x=10,y=10
+*********************
+_kOffset	equ #11
+
+DrawKMask	ldx #0
+:loop	lda _kWidth*0+_spriteK,x
+	beq :skip1
+	cmp #1
+	bne :notRand1
+	jsr GetRandLow
+:notRand1	sta FBufWidth*6+FBUF+_kOffset,x
+:skip1	lda _kWidth*1+_spriteK,x
+	beq :skip2
+	cmp #1
+	bne :notRand2
+	jsr GetRandLow
+:notRand2	sta FBufWidth*7+FBUF+_kOffset,x
+:skip2	lda _kWidth*2+_spriteK,x
+	beq :skip3
+	sta FBufWidth*8+FBUF+_kOffset,x
+:skip3	lda _kWidth*3+_spriteK,x
+	beq :skip4
+	cmp #1
+	bne :notRand4
+	jsr GetRandLow
+:notRand4	sta FBufWidth*9+FBUF+_kOffset,x
+:skip4	lda _kWidth*4+_spriteK,x
+	beq :skip5
+	sta FBufWidth*10+FBUF+_kOffset,x
+:skip5	lda _kWidth*5+_spriteK,x
+	beq :skip6
+	sta FBufWidth*11+FBUF+_kOffset,x
+:skip6	lda _kWidth*6+_spriteK,x
+	beq :skip7
+	sta FBufWidth*12+FBUF+_kOffset,x
+:skip7	lda _kWidth*7+_spriteK,x
+	beq :skip8
+	sta FBufWidth*13+FBUF+_kOffset,x
+:skip8	lda _kWidth*8+_spriteK,x
+	beq :skip9
+	sta FBufWidth*14+FBUF+_kOffset,x
+:skip9	lda _kWidth*9+_spriteK,x
+	beq :skip10
+	sta FBufWidth*15+FBUF+_kOffset,x
+:skip10	lda _kWidth*10+_spriteK,x
+	beq :skip11
+	sta FBufWidth*16+FBUF+_kOffset,x
+:skip11	lda _kWidth*11+_spriteK,x
+	beq :skip12
+	sta FBufWidth*17+FBUF+_kOffset,x
+:skip12	lda _kWidth*12+_spriteK,x
+	beq :skip13
+	sta FBufWidth*18+FBUF+_kOffset,x
+:skip13	lda _kWidth*13+_spriteK,x
+	beq :skip14
+	sta FBufWidth*19+FBUF+_kOffset,x
+:skip14	lda _kWidth*14+_spriteK,x
+	beq :skip15
+	sta FBufWidth*20+FBUF+_kOffset,x
+:skip15	lda _kWidth*15+_spriteK,x
+	beq :skip16
+	sta FBufWidth*21+FBUF+_kOffset,x
+:skip16
+
+	inx
+	cpx #_kWidth
+	beq :done
+	jmp :loop
+:done
+	rts
+_kWidth	equ #18
+_kHeight	equ #16
+_spriteK	db $01,$01,$01,$01,$01,$01,$01,$00,$00,$00,$00,$01,$01,$01,$01,$01,$01,$01
+	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01
+	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01
+	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01,$01,$00
+	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00
+	db $01,$0F,$0F,$0F,$0F,$0F,$0F,$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00
+	db $01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00
+	db $01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00
+	db $01,$0F,$0F,$0F,$0F,$0F,$0F,$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00
+	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00
+	db $01,$01,$0F,$0F,$0F,$0F,$01,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01,$01,$00
+	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01
+	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01
+	db $01,$01,$01,$01,$01,$01,$01,$00,$00,$00,$00,$01,$01,$01,$01,$01,$01,$01
 
 **************************************************
 * Called by DemoMain
@@ -514,23 +645,40 @@ GetRand
 
 _randomByte	db 0
 
-
-**************************************************
-* Awesome PRNG thx to White Flame (aka David Holz)
-**************************************************
-GetRandHot
-	lda RND
+GetRandLow
+	lda _randomByte2
 	beq :doEor
 	asl
 	bcc :noEor
 :doEor	eor #$1d
-:noEor	sta RND
+:noEor	sta _randomByte2
+	cmp #$80
+	bcs :hot
+	lda #$0
+	rts
+:hot	lda #$04
+	rts
+
+_randomByte2	db 0
+
+
+**************************************************
+* Fire stoker.. returns 0 or F
+**************************************************
+GetRandHot
+	lda _rndHot
+	beq :doEor
+	asl
+	bcc :noEor
+:doEor	eor #$1d
+:noEor	sta _rndHot
 	cmp #$90	; FIRE RATIO
 	bcs :hot
 :not	lda #$0f
 	rts
 :hot	lda #$00
 	rts
+_rndHot	db 0
 
 **************************************************
 * Very simple routine to lay down a line where
@@ -538,17 +686,17 @@ GetRandHot
 **************************************************
 MakeHeat
 	lda #0
-	sta LASTLINE	;FORCE CORNERS BLACK
-	sta LASTLINE+#39
+	sta FBufLastLine	;FORCE CORNERS BLACK
+	sta FBufLastLine+#39
 	;EXTRA LINE
-	sta LASTLINE+#WIDTH	;FORCE CORNERS BLACK
-	sta LASTLINE+#WIDTH+#39
+	sta FBufLastLine+#FBufWidth	;FORCE CORNERS BLACK
+	sta FBufLastLine+#FBufWidth+#39
 
-	ldx #WIDTH-2
+	ldx #FBufWidth-2
 :mloop	jsr GetRandHot
-	sta LASTLINE,x
+	sta FBufLastLine,x
 	jsr GetRandHot
-	sta LASTLINE+#WIDTH,x
+	sta FBufLastLine+#FBufWidth,x
 	dex
 	bne :mloop
 
@@ -559,9 +707,9 @@ MakeHeat
 **************************************************
 Scroll8   
 *set source
-	lda #FBUF+WIDTH
+	lda #FBUF+FBufWidth
 	sta srcPtr
-	lda #>FBUF+WIDTH
+	lda #>FBUF+FBufWidth
 	sta srcPtr+1
 
 *set destination
@@ -572,7 +720,7 @@ Scroll8
 
 :movfwd	ldy #0
 	ldx #0
-	cpx #>FBUFLEN-WIDTH
+	cpx #>FBufLen-FBufWidth
 	beq :frag
 :page	lda (srcPtr),y
 	sta (dstPtr),y
@@ -581,9 +729,9 @@ Scroll8
 	inc srcPtr+1
 	inc dstPtr+1
 	inx
-	cpx #>FBUFLEN-WIDTH
+	cpx #>FBufLen-FBufWidth
 	bne :page
-:frag	cpy #FBUFLEN-WIDTH
+:frag	cpy #FBufLen-FBufWidth
 	beq :doneCopy
 	lda (srcPtr),y
 	sta (dstPtr),y
@@ -611,14 +759,14 @@ Average8
 	lda #>FBUF+#1
 	sta srcPtrR+1
 
-	lda #FBUF+#WIDTH
+	lda #FBUF+#FBufWidth
 	sta srcPtrD
-	lda #>FBUF+#WIDTH
+	lda #>FBUF+#FBufWidth
 	sta srcPtrD+1
 
 	ldx #0	; lines
 
-:avgLine	ldy #WIDTH-1
+:avgLine	ldy #FBufWidth-1
 :lineLoop
 	clc
 	lda (srcPtr),y	;0
@@ -632,7 +780,7 @@ Average8
 :skipDec	sta (srcPtr),y	;0
 	dey
 	bne :lineLoop
-	cpx #HEIGHT
+	cpx #FBufHeight
 	beq :doneLines
 	inx	;next line
 
@@ -667,7 +815,7 @@ Average8
 :bottomPixel	;add to bottom line pointer
 	lda srcPtrD
 	clc
-	adc #WIDTH
+	adc #FBufWidth
 	sta srcPtrD
 	lda srcPtrD+1
 	adc #0
@@ -677,6 +825,34 @@ Average8
 :doneLines    rts
 
 
+ClearLoRes	ldx #40
+:loop	dex
+	stz Lo01,x
+	stz Lo02,x
+	stz Lo03,x
+	stz Lo04,x
+	stz Lo05,x
+	stz Lo06,x
+	stz Lo07,x
+	stz Lo08,x
+	stz Lo09,x
+	stz Lo10,x
+	stz Lo11,x
+	stz Lo12,x
+	stz Lo13,x
+	stz Lo14,x
+	stz Lo15,x
+	stz Lo16,x
+	stz Lo17,x
+	stz Lo18,x
+	stz Lo19,x
+	stz Lo20,x
+	stz Lo21,x
+	stz Lo22,x
+	stz Lo23,x
+	stz Lo24,x
+	bne :loop
+	rts 
 
 **************************************************
 * Draw entire buffer on screen
@@ -687,191 +863,191 @@ DrawBufFullScreen
 	lda ColorIdx,y
 	sta Lo01,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop0
 
 	ldx #$0
-:loop1    ldy WIDTH*1+FBUF,x
+:loop1    ldy FBufWidth*1+FBUF,x
 	lda ColorIdx,y
 	sta Lo02,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop1
 
 	ldx #$0
-:loop2    ldy WIDTH*2+FBUF,x
+:loop2    ldy FBufWidth*2+FBUF,x
 	lda ColorIdx,y
 	sta Lo03,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop2
 
 	ldx #$0
-:loop3    ldy WIDTH*3+FBUF,x
+:loop3    ldy FBufWidth*3+FBUF,x
 	lda ColorIdx,y
 	sta Lo04,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop3
 
 	ldx #$0
-:loop4    ldy WIDTH*4+FBUF,x
+:loop4    ldy FBufWidth*4+FBUF,x
 	lda ColorIdx,y
 	sta Lo05,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop4
 
 	ldx #$0
-:loop5    ldy WIDTH*5+FBUF,x
+:loop5    ldy FBufWidth*5+FBUF,x
 	lda ColorIdx,y
 	sta Lo06,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop5
 
 	ldx #$0
-:loop6    ldy WIDTH*6+FBUF,x
+:loop6    ldy FBufWidth*6+FBUF,x
 	lda ColorIdx,y
 	sta Lo07,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop6
 
 	ldx #$0
-:loop7    ldy WIDTH*7+FBUF,x
+:loop7    ldy FBufWidth*7+FBUF,x
 	lda ColorIdx,y
 	sta Lo08,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop7
 
 	ldx #$0
-:loop8    ldy WIDTH*8+FBUF,x
+:loop8    ldy FBufWidth*8+FBUF,x
 	lda ColorIdx,y
 	sta Lo09,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop8
 
 	ldx #$0
-:loop9    ldy WIDTH*9+FBUF,x
+:loop9    ldy FBufWidth*9+FBUF,x
 	lda ColorIdx,y
 	sta Lo10,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop9
 
 	ldx #$0
-:loop10   ldy WIDTH*#10+FBUF,x
+:loop10   ldy FBufWidth*#10+FBUF,x
 	lda ColorIdx,y
 	sta Lo11,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop10
 
 	ldx #$0
-:loop11   ldy WIDTH*#11+FBUF,x
+:loop11   ldy FBufWidth*#11+FBUF,x
 	lda ColorIdx,y
 	sta Lo12,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop11
 
 	ldx #$0
-:loop12   ldy WIDTH*#12+FBUF,x
+:loop12   ldy FBufWidth*#12+FBUF,x
 	lda ColorIdx,y
 	sta Lo13,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop12
 
 	ldx #$0
-:loop13   ldy WIDTH*#13+FBUF,x
+:loop13   ldy FBufWidth*#13+FBUF,x
 	lda ColorIdx,y
 	sta Lo14,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop13
 
 	ldx #$0
-:loop14   ldy WIDTH*#14+FBUF,x
+:loop14   ldy FBufWidth*#14+FBUF,x
 	lda ColorIdx,y
 	sta Lo15,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop14
 
 	ldx #$0
-:loop15   ldy WIDTH*#15+FBUF,x
+:loop15   ldy FBufWidth*#15+FBUF,x
 	lda ColorIdx,y
 	sta Lo16,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop15
 
 	ldx #$0
-:loop16   ldy WIDTH*#16+FBUF,x
+:loop16   ldy FBufWidth*#16+FBUF,x
 	lda ColorIdx,y
 	sta Lo17,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop16
 
 	ldx #$0
-:loop17   ldy WIDTH*#17+FBUF,x
+:loop17   ldy FBufWidth*#17+FBUF,x
 	lda ColorIdx,y
 	sta Lo18,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop17
 
 	ldx #$0
-:loop18   ldy WIDTH*#18+FBUF,x
+:loop18   ldy FBufWidth*#18+FBUF,x
 	lda ColorIdx,y
 	sta Lo19,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop18
 
 	ldx #$0
-:loop19   ldy WIDTH*#19+FBUF,x
+:loop19   ldy FBufWidth*#19+FBUF,x
 	lda ColorIdx,y
 	sta Lo20,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop19
 
 	ldx #$0
-:loop20   ldy WIDTH*#20+FBUF,x
+:loop20   ldy FBufWidth*#20+FBUF,x
 	lda ColorIdx,y
 	sta Lo21,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop20
 
 	ldx #$0
-:loop21   ldy WIDTH*#21+FBUF,x
+:loop21   ldy FBufWidth*#21+FBUF,x
 	lda ColorIdx,y
 	sta Lo22,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop21
 
 	ldx #$0
-:loop22   ldy WIDTH*#22+FBUF,x
+:loop22   ldy FBufWidth*#22+FBUF,x
 	lda ColorIdx,y
 	sta Lo23,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop22
 
 	ldx #$0
-:loop23   ldy WIDTH*#23+FBUF,x
+:loop23   ldy FBufWidth*#23+FBUF,x
 	lda ColorIdx,y
 	sta Lo24,x
 	inx
-	cpx #WIDTH
+	cpx #FBufWidth
 	bne :loop23
 	rts
 
