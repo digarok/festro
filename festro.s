@@ -40,16 +40,44 @@ DemoMain
 	bra :mainLoop
 
 DemoSubroutineTable
+
 	dw HandleProdrop
 	dw HandleDigawrite
+	dw HandleShortWait
 	dw HandleProdrop
 	dw HandleSwipeWrite
+	dw HandleShortWait
+	dw HandleShortWait
+	dw HandleProdrop
+
 	dw HandleLoResInit
+	dw HandleFireRatio20
+	dw HandleFireState1
+	dw HandleFireRatio90
 	dw HandleFireState1
 	dw HandleFireStateK
 	dw HandleFireState1
-	dw HandleFireStateK
+	dw HandleFireStateF
 	dw HandleFireState1
+	dw HandleFireStateE
+	dw HandleFireState1
+	dw HandleFireStateS
+	dw HandleFireState1
+	dw HandleFireStateT
+	dw HandleFireState1
+	dw HandleFireState1
+	dw HandleFireState1
+	dw HandleFireRatio20
+	dw HandleFireState1
+	dw HandleFireState1
+	dw HandleFireRatio01
+	dw HandleFireState1
+	dw HandleKfestLogo
+	dw HandleShortWait
+	dw HandleShortWait
+	dw SetProdropGr
+	dw HandleProdrop
+	dw HandleShortWait
 	dw P8Quit
 
 HandleLoResInit
@@ -58,8 +86,31 @@ HandleLoResInit
 	inc GDemoState
 	jmp DemoMain
 
+HandleFireRatio01
+	lda #$01
+	sta GFireRatio
+	inc GDemoState
+	jmp DemoMain
+HandleFireRatio20
+	lda #$20
+	sta GFireRatio
+	inc GDemoState
+	jmp DemoMain
+
+HandleFireRatio90
+	lda #$90
+	sta GFireRatio
+	inc GDemoState
+	jmp DemoMain
+
+HandleFireRatioC0
+	lda #$C0
+	sta GFireRatio
+	inc GDemoState
+	jmp DemoMain
+
 HandleFireState1
-	ldx #30
+	ldx #20
 :loop	jsr FirePass
 	dex
 	bne :loop
@@ -67,13 +118,55 @@ HandleFireState1
 	jmp DemoMain
 
 HandleFireStateK
-	ldx #$20
-:loop	jsr FirePass2
-	dex
+	lda #$20
+:loop	ldx #_sprData_K	
+	ldy #>_sprData_K
+	jsr FirePass2	; preserves A,X,Y
+	dec
 	bne :loop
 	inc GDemoState
 	jmp DemoMain
 
+HandleFireStateF
+	lda #$20
+:loop	ldx #_sprData_F	
+	ldy #>_sprData_F
+	jsr FirePass2	; preserves A,X,Y
+	dec
+	bne :loop
+	inc GDemoState
+	jmp DemoMain
+
+HandleFireStateE
+	lda #$20
+:loop	ldx #_sprData_E	
+	ldy #>_sprData_E
+	jsr FirePass2	; preserves A,X,Y
+	dec
+	bne :loop
+	inc GDemoState
+	jmp DemoMain
+
+
+HandleFireStateS
+	lda #$20
+:loop	ldx #_sprData_S	
+	ldy #>_sprData_S
+	jsr FirePass2	; preserves A,X,Y
+	dec
+	bne :loop
+	inc GDemoState
+	jmp DemoMain
+
+HandleFireStateT
+	lda #$20
+:loop	ldx #_sprData_T	
+	ldy #>_sprData_T
+	jsr FirePass2	; preserves A,X,Y
+	dec
+	bne :loop
+	inc GDemoState
+	jmp DemoMain
 
 FirePass	pha
 	phx
@@ -84,14 +177,19 @@ FirePass	pha
 	plx
 	pla
 	rts
-FirePass2	pha
+
+* A = count X=lowbyte  Y=hibyte
+FirePass2	
+	pha
 	phx
+	phy
 	jsr MakeHeat
 	jsr Scroll8
-	jsr DrawKMask
+	ply
+	plx
+	jsr DrawSpriteMask
 	jsr Average8
 	jsr DrawBufFullScreen
-	plx
 	pla
 	rts
 
@@ -150,6 +248,118 @@ FBufLastLine	equ #FBufWidth*#FBufHeight-#FBufWidth+FBUF
 **************************************************
 * Demo-Part Controllers
 **************************************************
+HandleKfestLogo
+	ldx #0
+:logoLoop	lda KfestLogo,x
+	sta Lo01,x
+	lda KfestLogoWidth*1+KfestLogo,x
+	sta Lo02,x
+	lda KfestLogoWidth*2+KfestLogo,x
+	sta Lo03,x
+	lda KfestLogoWidth*3+KfestLogo,x
+	sta Lo04,x
+	lda KfestLogoWidth*4+KfestLogo,x
+	sta Lo05,x
+	lda KfestLogoWidth*5+KfestLogo,x
+	sta Lo06,x
+	lda KfestLogoWidth*6+KfestLogo,x
+	sta Lo07,x
+	lda KfestLogoWidth*7+KfestLogo,x
+	sta Lo08,x
+	lda KfestLogoWidth*8+KfestLogo,x
+	sta Lo09,x
+	lda KfestLogoWidth*9+KfestLogo,x
+	sta Lo10,x
+	lda KfestLogoWidth*10+KfestLogo,x
+	sta Lo11,x
+	lda KfestLogoWidth*11+KfestLogo,x
+	sta Lo12,x
+	lda KfestLogoWidth*12+KfestLogo,x
+	bra :skip
+:loop	bra :logoLoop		; i hate hate hate this
+:skip	sta Lo13,x
+	lda KfestLogoWidth*13+KfestLogo,x
+	sta Lo14,x
+	lda KfestLogoWidth*14+KfestLogo,x
+	sta Lo15,x
+	lda KfestLogoWidth*15+KfestLogo,x
+	sta Lo16,x
+	lda KfestLogoWidth*16+KfestLogo,x
+	sta Lo17,x
+	lda KfestLogoWidth*17+KfestLogo,x
+	sta Lo18,x
+	lda KfestLogoWidth*18+KfestLogo,x
+	sta Lo19,x
+	lda KfestLogoWidth*19+KfestLogo,x
+	sta Lo20,x
+	lda KfestLogoWidth*20+KfestLogo,x
+	sta Lo21,x
+	lda KfestLogoWidth*21+KfestLogo,x
+	sta Lo22,x
+	lda KfestLogoWidth*22+KfestLogo,x
+	sta Lo23,x
+	lda KfestLogoWidth*23+KfestLogo,x
+	sta Lo24,x
+	inx
+	cpx #KfestLogoWidth
+	bne :loop
+	
+	inc GDemoState
+	jmp DemoMain
+
+
+
+KfestLogoWidth equ #40
+KfestLogoHeight equ #24
+KfestLogo
+	db $5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa
+	db $5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa
+	db $5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55
+	db $5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55
+	db $55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a
+	db $55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a
+	db $50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55
+	db $50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55
+	db $05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50
+	db $05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50
+	db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db $00,$00,$00,$00,$00,$70,$70,$00,$00,$00,$70,$70,$60,$70,$70,$70,$70,$70,$60,$70
+	db $70,$70,$70,$70,$60,$60,$70,$70,$70,$70,$60,$70,$70,$70,$70,$70,$70,$60,$e0,$e0
+	db $00,$00,$00,$00,$00,$77,$77,$00,$70,$77,$07,$00,$00,$77,$77,$00,$00,$00,$00,$77
+	db $77,$00,$00,$00,$00,$77,$77,$00,$00,$07,$00,$00,$00,$77,$77,$00,$00,$00,$00,$00
+	db $00,$00,$00,$00,$00,$77,$77,$77,$07,$00,$00,$00,$00,$77,$77,$70,$70,$00,$00,$77
+	db $77,$70,$70,$00,$00,$07,$77,$77,$70,$00,$00,$00,$00,$77,$77,$00,$00,$00,$00,$00
+	db $00,$00,$00,$00,$00,$77,$77,$77,$70,$00,$00,$00,$00,$77,$77,$07,$07,$00,$00,$77
+	db $77,$07,$07,$00,$00,$00,$07,$77,$77,$70,$00,$00,$00,$77,$77,$00,$00,$00,$00,$00
+	db $00,$00,$00,$00,$00,$77,$77,$00,$07,$77,$70,$00,$00,$77,$77,$00,$00,$00,$00,$77
+	db $77,$00,$00,$00,$00,$70,$00,$00,$77,$77,$00,$00,$00,$77,$77,$00,$00,$00,$00,$00
+	db $0e,$0e,$0e,$0e,$06,$07,$07,$00,$00,$00,$07,$07,$02,$07,$07,$00,$00,$00,$00,$07
+	db $07,$07,$07,$07,$02,$07,$07,$07,$07,$00,$00,$00,$00,$07,$07,$00,$00,$00,$00,$00
+	db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db $01,$01,$01,$01,$01,$01,$90,$99,$09,$09,$99,$90,$01,$01,$90,$99,$09,$99,$90,$01
+	db $01,$01,$90,$99,$99,$00,$01,$00,$09,$09,$09,$99,$99,$09,$00,$01,$01,$01,$01,$01
+	db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$99,$99,$00,$00,$99,$99,$00,$99,$99,$00
+	db $00,$00,$00,$99,$99,$00,$00,$00,$00,$90,$99,$99,$90,$00,$00,$00,$00,$00,$00,$00
+	db $00,$00,$00,$00,$00,$00,$00,$00,$90,$99,$09,$00,$00,$00,$99,$99,$00,$99,$99,$00
+	db $00,$00,$00,$99,$99,$00,$00,$00,$00,$00,$00,$00,$99,$99,$00,$00,$00,$00,$00,$00
+	db $00,$00,$00,$00,$00,$00,$00,$90,$99,$09,$00,$00,$00,$00,$99,$99,$00,$99,$99,$00
+	db $00,$00,$00,$99,$99,$00,$00,$00,$00,$00,$00,$00,$99,$99,$00,$00,$00,$00,$00,$00
+	db $00,$00,$00,$00,$00,$00,$99,$99,$99,$90,$90,$90,$00,$00,$09,$99,$90,$99,$09,$00
+	db $00,$00,$00,$99,$99,$00,$00,$00,$09,$90,$90,$90,$99,$09,$00,$00,$00,$00,$00,$00
+	db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db $05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50
+	db $05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50
+	db $55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05
+	db $55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05
+	db $a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55
+	db $a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55
+	db $55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5
+	db $55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5
+	db $aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5
+	db $aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5
 HandleDigawrite
 	lda #40
 	tax
@@ -177,7 +387,24 @@ HandleDigawrite
 
 	inc GDemoState
 	jmp DemoMain
-_digawriteString	asc "--==>> DiGAROK <<==--",00
+_digawriteString	asc "a DiGAROK presentation ...",00
+
+HandleShortWait
+	lda #30
+	tax
+	tay
+	jsr SimpleWait	
+	inc GDemoState
+	jmp DemoMain
+
+SetProdropGr
+	lda #$00
+	sta ]dropCharCompare
+	sta ]dropCharWrite
+	inc GDemoState
+	jmp DemoMain
+
+
 ** Dropper routine - not specific to ProDrop per se
 ** - uses DSEG0
 HandleProdrop
@@ -186,10 +413,6 @@ HandleProdrop
 	jmp :prodropUpdate
 
 :prodropScan
-	lda #$10
-	tax
-	tay
-	jsr SimpleWait	; we actually pause a bit just for dramatic effect
 	lda #0	; start scan at line 0 every time
 	sta _prodropScanLine
 
@@ -198,7 +421,7 @@ HandleProdrop
 	lda #>DSEG0
 	sta dstPtr+1
 
-]scanLineLoop
+:scanLineLoop
 	lda _prodropScanLine
 	rol	; (line * 2) for table index
 	tax
@@ -208,10 +431,11 @@ HandleProdrop
 	sta srcPtr+1
 
 	ldy #0
-]scanCharLoop
+:scanCharLoop
 	lda (srcPtr),y
-	cmp #" "
-	beq ]nextChar
+	cmp #" "	; SPACE
+]dropCharCompare equ *-1
+	beq :nextChar
 	and #%01111111	; clear high bit to indicate non-animated state
 
 	phy	; +1
@@ -238,17 +462,17 @@ HandleProdrop
 	clc
 	adc #$04
 	sta dstPtr
-	bcc ]nextChar
+	bcc :nextChar
 	inc dstPtr+1	; increment page (high byte)
-]nextChar
+:nextChar
 	iny
 	cpy #40
-	bne ]scanCharLoop
+	bne :scanCharLoop
 
 	inc _prodropScanLine
 	lda _prodropScanLine
 	cmp #24
-	bne ]scanLineLoop
+	bne :scanLineLoop
 
 	; we're done scanning
 	lda #$FF
@@ -317,6 +541,7 @@ HandleProdrop
 	lda (srcPtr),y	; get our X value
 	tay
 	lda #" "
+]dropCharWrite equ *-1
 	sta (dstPtr),y
 * breath... holy crap all that just to draw a space at X,Y
 	ldy #2
@@ -386,7 +611,7 @@ _prodropState	db 0	; starts with 0, which is scan mode
 
 HandleSwipeWrite
 ]initSwipe
-	ldx #$23	; reset line indexes
+	ldx #23	; reset line indexes
 :clearLoop	stz _swipeLinesX,x	;
 	dex
 	bne :clearLoop
@@ -397,7 +622,7 @@ HandleSwipeWrite
 	sta _swipeMaxHeight	; set max height
 	lda #FireTextWidth
 	sta _swipeMaxWidth	; set max width
-	lda #5
+	lda #9
 	sta _swipeXOffset	; set x position
 	lda #3
 	sta _swipeYOffset	; set y position
@@ -463,7 +688,6 @@ HandleSwipeWrite
 	tax
 	tay
 	jsr SimpleWait
-
 	lda _swipeLinesDone
 	beq :swipeLoop
 	inc GDemoState
@@ -490,121 +714,175 @@ _swipeMaxWidth	db #0	; set # characters per line in the source buffer
 _swipeXOffset	db #$0	; screen offset for placement
 _swipeYOffset	db #$0	; screen offset for placement
 
-
-FireTextHeight equ #18	; buffer height
-FireTextWidth	equ #34	; buffer width
-
+FireTextHeight equ #20	; buffer height
+FireTextWidth	equ #23	; buffer width (INCLUDE 00 BYTE!!)
 	ds \
-FireText	asc "    __         __                ",00
-	asc "   / /   ___  / /______          ",00
-	asc "  / /   / _ \/ __/ ___/          ",00
-	asc " / /___/  __/ /_(__  )           ",00
-	asc "/_____/\___/\__/____/            ",00
-              asc "                                 ",00
-	asc "     _______              ______ ",00
-	asc "    / ____(_)_______     /  _/ /_",00
-	asc "   / /_  / / ___/ _ \    / // __/",00
-	asc "  / __/ / / /  /  __/  _/ // /_  ",00
-	asc " /_/   /_/_/   \___/  /___/\__/  ",00
-	asc "                                 ",00
-	asc "         __  __      __          ",00
-	asc "        / / / /___  / /          ",00
-	asc "       / / / / __ \/ /           ",00
-	asc "      / /_/ / /_/ /_/            ",00
-	asc "      \____/ .___(_)             ",00
-	asc "          /_/                    ",00
-
+FireText	
+	asc "             -/+.     ",00
+	asc "            /+++      ",00              
+	asc "           :+++.      ",00        
+	asc "           ++:`       ",00        
+	asc "   .=++++/--.:/+++=-  ",00        
+	asc "  -++++++++++++++++++`",00        
+	asc " .::::::::::::::::::` ",00        
+	asc " ::::::::::::::::::`  ",00        
+	asc "`/////////////////:   ",00        
+	asc "`+++++++++++++++++:   ",00        
+	asc "`++++++++++++++++++`  ",00        
+	asc " osssssssssssssssss+` ",00        
+	asc " -sssssssssssssssssso/",00        
+	asc "  ossssssssssssssssss/",00        
+	asc "  `ssssssssssssssssso ",00        
+	asc "   .ossssssssssssss+` ",00        
+	asc "    `+ssss+//+ssss/   ",00       
+	asc "      `-.`    `.-`    ",00       
+	asc "                      ",00
+	asc "             LET'S GO!",00
 *********************
 * DEMO ONLY!
 * x=10,y=10
 *********************
-_kOffset	equ #11
+_fbufOffsetX	equ #11
+_fbufOffsetY	equ #6
 
-DrawKMask	ldx #0
-:loop	lda _kWidth*0+_spriteK,x
+**************
+* pass sprite ptr  - fixed width,height,x,y
+* 18x16
+**************
+
+_spriteWidth equ #18
+_spriteHeight equ #16
+_spriteDrawRow db 0
+DrawSpriteMask 
+	stx srcPtr
+	sty srcPtr+1	; points to first char of sprite
+	lda #_spriteHeight
+	sta _spriteDrawRow
+	lda #FBufWidth*_fbufOffsetY+FBUF+_fbufOffsetX
+	sta dstPtr
+	lda #>FBufWidth*_fbufOffsetY+FBUF+_fbufOffsetX
+	sta dstPtr+1	; points to first char of buffer with offsets
+
+:lineLoop	ldy #0
+:loop1	lda (srcPtr),y
 	beq :skip1
 	cmp #1
 	bne :notRand1
 	jsr GetRandLow
-:notRand1	sta FBufWidth*6+FBUF+_kOffset,x
-:skip1	lda _kWidth*1+_spriteK,x
-	beq :skip2
-	cmp #1
-	bne :notRand2
-	jsr GetRandLow
-:notRand2	sta FBufWidth*7+FBUF+_kOffset,x
-:skip2	lda _kWidth*2+_spriteK,x
-	beq :skip3
-	sta FBufWidth*8+FBUF+_kOffset,x
-:skip3	lda _kWidth*3+_spriteK,x
-	beq :skip4
-	cmp #1
-	bne :notRand4
-	jsr GetRandLow
-:notRand4	sta FBufWidth*9+FBUF+_kOffset,x
-:skip4	lda _kWidth*4+_spriteK,x
-	beq :skip5
-	sta FBufWidth*10+FBUF+_kOffset,x
-:skip5	lda _kWidth*5+_spriteK,x
-	beq :skip6
-	sta FBufWidth*11+FBUF+_kOffset,x
-:skip6	lda _kWidth*6+_spriteK,x
-	beq :skip7
-	sta FBufWidth*12+FBUF+_kOffset,x
-:skip7	lda _kWidth*7+_spriteK,x
-	beq :skip8
-	sta FBufWidth*13+FBUF+_kOffset,x
-:skip8	lda _kWidth*8+_spriteK,x
-	beq :skip9
-	sta FBufWidth*14+FBUF+_kOffset,x
-:skip9	lda _kWidth*9+_spriteK,x
-	beq :skip10
-	sta FBufWidth*15+FBUF+_kOffset,x
-:skip10	lda _kWidth*10+_spriteK,x
-	beq :skip11
-	sta FBufWidth*16+FBUF+_kOffset,x
-:skip11	lda _kWidth*11+_spriteK,x
-	beq :skip12
-	sta FBufWidth*17+FBUF+_kOffset,x
-:skip12	lda _kWidth*12+_spriteK,x
-	beq :skip13
-	sta FBufWidth*18+FBUF+_kOffset,x
-:skip13	lda _kWidth*13+_spriteK,x
-	beq :skip14
-	sta FBufWidth*19+FBUF+_kOffset,x
-:skip14	lda _kWidth*14+_spriteK,x
-	beq :skip15
-	sta FBufWidth*20+FBUF+_kOffset,x
-:skip15	lda _kWidth*15+_spriteK,x
-	beq :skip16
-	sta FBufWidth*21+FBUF+_kOffset,x
-:skip16
+:notRand1	sta (dstPtr),y
+:skip1	iny
+	cpy #_spriteWidth
+	bne :loop1
+	lda srcPtr
+	clc 
+	adc #_spriteWidth
+	sta srcPtr
+	bcc :noFlip1
+	inc srcPtr+1
+:noFlip1	lda dstPtr
+	clc
+	adc #FBufWidth
+	sta dstPtr
+	bcc :noFlip2
+	inc dstPtr+1
+:noFlip2
+	dec _spriteDrawRow
+	lda _spriteDrawRow
+	bne :lineLoop
+	rts	
 
-	inx
-	cpx #_kWidth
-	beq :done
-	jmp :loop
-:done
-	rts
-_kWidth	equ #18
-_kHeight	equ #16
-_spriteK	db $01,$01,$01,$01,$01,$01,$01,$00,$00,$00,$00,$01,$01,$01,$01,$01,$01,$01
-	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01
-	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01
-	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$0F,$01
-	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01,$01,$00
-	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00
-	db $01,$0F,$0F,$0F,$0F,$0F,$0F,$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00
-	db $01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00
-	db $01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00
-	db $01,$0F,$0F,$0F,$0F,$0F,$0F,$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00
-	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00
-	db $01,$01,$0F,$0F,$0F,$0F,$01,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01,$01,$00
-	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$0F,$01
-	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01
-	db $01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01
-	db $01,$01,$01,$01,$01,$01,$01,$00,$00,$00,$00,$01,$01,$01,$01,$01,$01,$01
 
+
+_sprWidth_K	equ #18
+_sprHeight_K	equ #16
+_sprData_K	db	$01,$01,$01,$01,$01,$01,$01,$00,$00,$00,$00,$01,$01,$01,$01,$01,$01,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01,$01,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00
+	db	$01,$01,$0F,$0F,$0F,$0F,$01,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01,$01,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$01,$01,$01,$01,$01,$01,$00,$00,$00,$00,$01,$01,$01,$01,$01,$01,$01
+_sprWidth_F	equ #18
+_sprHeight_F	equ #16
+_sprData_F	db	$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$01,$01,$01,$01,$01,$01,$01,$01,$01,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00,$00,$01,$01,$01,$01,$01
+	db	$01,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$01,$01,$01,$01,$01,$01,$01,$01,$01,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db	$01,$01,$01,$01,$01,$01,$01,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+_sprWidth_E	equ #18
+_sprHeight_E	equ #16
+_sprData_E	db	$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$01,$01,$01,$01,$01,$01,$01,$01,$01,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00,$00,$01,$01,$01,$01,$01
+	db	$01,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$01,$01,$01,$01,$01,$01,$01,$01,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+_sprWidth_S	equ #18
+_sprHeight_S	equ #16
+_sprData_S	db	$00,$00,$00,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$00
+	db	$00,$01,$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$01,$00,$00,$01,$01,$01,$01,$01,$01,$01,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db	$01,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db	$00,$00,$0F,$0F,$0F,$0F,$01,$01,$01,$01,$00,$00,$00,$00,$00,$00,$00,$00
+	db	$00,$00,$01,$01,$0F,$0F,$0F,$0F,$0F,$0F,$01,$01,$01,$01,$00,$00,$00,$00
+	db	$00,$00,$00,$00,$01,$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01,$01,$00,$00
+	db	$00,$00,$00,$00,$00,$00,$01,$01,$01,$01,$01,$01,$0F,$0F,$0F,$0F,$00,$00
+	db	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01
+	db	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$01,$01,$01,$01,$01,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01,$01,$00
+	db	$00,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$00,$00
+_sprWidth_T	equ #18
+_sprHeight_T	equ #16
+_sprData_T	db	$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01
+	db	$01,$0F,$0F,$0F,$01,$01,$0F,$0F,$0F,$0F,$0F,$0F,$01,$01,$0F,$0F,$0F,$01
+	db	$01,$01,$01,$01,$00,$00,$01,$0F,$0F,$0F,$0F,$01,$00,$00,$01,$01,$01,$01
+	db	$00,$00,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00
+	db	$00,$00,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00
+	db	$00,$00,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00
+	db	$00,$00,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00
+	db	$00,$00,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00
+	db	$00,$00,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00
+	db	$00,$00,$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00,$00,$00
+	db	$00,$00,$00,$00,$01,$01,$0F,$0F,$0F,$0F,$0F,$0F,$01,$01,$00,$00,$00,$00
+	db	$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00
+	db	$00,$00,$00,$00,$01,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$01,$00,$00,$00,$00
+	db	$00,$00,$00,$00,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$00,$00,$00,$00
 **************************************************
 * Called by DemoMain
 **************************************************
@@ -672,13 +950,14 @@ GetRandHot
 	bcc :noEor
 :doEor	eor #$1d
 :noEor	sta _rndHot
-	cmp #$90	; FIRE RATIO
+	cmp GFireRatio	; FIRE RATIO
 	bcs :hot
 :not	lda #$0f
 	rts
 :hot	lda #$00
 	rts
 _rndHot	db 0
+GFireRatio	db #$90
 
 **************************************************
 * Very simple routine to lay down a line where
@@ -1162,13 +1441,13 @@ LoLineTable	da Lo01,Lo02,Lo03,Lo04,Lo05,Lo06
 	da Lo19,Lo20,Lo21,Lo22,Lo23,Lo24
 
 
-
 **************************************************
 * Data Segments
 **************************************************
 	ds \
-DSEG0     ds 1024	; General 1K Data Store
-
+DSEG0	ds 1024	; General 1K Data Store
+DSEG1	ds 1024	; Secondary (overflow region?)
+DSEG2	ds 4096	; Secondary (overflow region?)
 
 **************************************************
 * Global Variables
@@ -1181,32 +1460,9 @@ GDemoState	db 0	; current demo state
 **************************************************
 * State 'Enumerators'
 **************************************************
-
-DemoStateProdrop	equ #0	; P8 screen shows and letters drop off
-DemoStateDigawrite	equ #1	; writes 'DiGAROK' and pauses
-DemoStateDigadrop	equ #2	; Really same as DemoStateProdrop
-DemoStateFire	equ #3	; Fire has a lot going on so has own substates
-DemoStateAppleText	equ #4	; Draws ascii apple + greets/shouts
-DemoStateGRSprite	equ #5	; GR mode sprite anim plus bottom text writer
-DemoStateExit	equ #6	; Not sure... draw info text? just quit?
-
 ProdropStateScan	equ #0	; Scans all characters into our data structure
 ProdropStateUpdate	equ #1	; Does one round of character updates, buffer&screen
 ProdropStateDone	equ #2	; Really just to let the callee(s) know it's all done
-
-
-
-FireStatePuff	equ #0	; flame code with custom heat (puff) generator
-FireStateFire1 equ #1	; lower rndhot?  or not...
-FireStateLetterK	equ #2	; draws K, waits, poof
-FireStateLetterF	equ #3	; draws F, waits, poof
-FireStateLetterE	equ #4	; draws E, waits, poof
-FireStateLetterS	equ #5	; draws S, waits, poof
-FireStateLetterT	equ #6	; draws T, waits, poof
-FireStateKFEST	equ #7	; draws logo, waits, poof
-FireStateFlareOut	equ #8	; maybe do a flame up or fizzle out
-
-
 
 	lst on
 	sav /code/festro.sys
