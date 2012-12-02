@@ -42,14 +42,11 @@ DemoMain
 DemoSubroutineTable
 
 	dw HandleProdrop
-*	dw HandleDigawrite
 	dw HandleShortWait
 	dw HandleStarScroll
-	dw HandleProdrop
-	dw HandleSwipeWrite
-	dw HandleShortWait
-	dw HandleShortWait
-	dw HandleProdrop
+	dw HandleTextClear
+	dw HandleScan
+	dw HandleMapScroll
 
 	dw HandleLoResInit
 	dw HandleFireRatio20
@@ -79,7 +76,88 @@ DemoSubroutineTable
 	dw SetProdropGr
 	dw HandleProdrop
 	dw HandleShortWait
+	dw HandleTextClear	
+	dw HandleSwipeWrite
+	dw HandleShortWait
+	dw HandleShortWait
+	dw HandleProdrop
 	dw P8Quit
+
+HandleMapScroll
+	ldx #WorldMapWidth-40
+	jsr DrawMapOffset
+	lda #$25
+	jsr SimplerWait
+	ldx #WorldMapWidth-40
+:scrollLoop	phx
+	jsr DrawMapOffset
+	lda #$20
+	jsr SimplerWait
+	plx 
+	dex
+	bne :scrollLoop
+	lda #$30
+	jsr SimplerWait
+	inc GDemoState
+	jmp DemoMain
+
+DrawMapOffset
+	ldy #0
+
+:drawLoop	lda WorldMap,x
+	sta Lo01,y
+	lda WorldMapWidth*1+WorldMap,x
+	sta Lo02,y
+	lda WorldMapWidth*2+WorldMap,x
+	sta Lo03,y
+	lda WorldMapWidth*3+WorldMap,x
+	sta Lo04,y
+	lda WorldMapWidth*4+WorldMap,x
+	sta Lo05,y
+	lda WorldMapWidth*5+WorldMap,x
+	sta Lo06,y
+	lda WorldMapWidth*6+WorldMap,x
+	sta Lo07,y
+	lda WorldMapWidth*7+WorldMap,x
+	sta Lo08,y
+	lda WorldMapWidth*8+WorldMap,x
+	sta Lo09,y
+	lda WorldMapWidth*9+WorldMap,x
+	sta Lo10,y
+	lda WorldMapWidth*10+WorldMap,x
+	sta Lo11,y
+	lda WorldMapWidth*11+WorldMap,x
+	sta Lo12,y
+	lda WorldMapWidth*12+WorldMap,x
+	sta Lo13,y
+	lda WorldMapWidth*13+WorldMap,x
+	sta Lo14,y
+	lda WorldMapWidth*14+WorldMap,x
+	sta Lo15,y
+	lda WorldMapWidth*15+WorldMap,x
+	sta Lo16,y
+	lda WorldMapWidth*16+WorldMap,x
+	sta Lo17,y
+	lda WorldMapWidth*17+WorldMap,x
+	sta Lo18,y
+	lda WorldMapWidth*18+WorldMap,x
+	sta Lo19,y
+	lda WorldMapWidth*19+WorldMap,x
+	sta Lo20,y
+	lda WorldMapWidth*20+WorldMap,x
+	sta Lo21,y
+	lda WorldMapWidth*21+WorldMap,x
+	sta Lo22,y
+	lda WorldMapWidth*22+WorldMap,x
+	sta Lo23,y
+	lda WorldMapWidth*23+WorldMap,x
+	sta Lo24,y
+	inx
+	iny
+	cpy #40
+	beq :done
+	jmp :drawLoop
+:done	rts 
 
 HandleStarScroll
 _defaultStarSpeed equ #$10
@@ -121,7 +199,7 @@ _defaultStarSpeed equ #$10
 	inc
 	inc
 	inc
-	cmp #7*4+#_defaultStarSpeed 
+	cmp #6*4+#_defaultStarSpeed 
 	bne :slowDown
 	lda #$50
 	jsr SimplerWait
@@ -130,7 +208,7 @@ _defaultStarSpeed equ #$10
 * speed up again
 
 	lda #$1e
-:speedUpAgain	ldx #5
+:speedUpAgain	ldx #3
 	pha
 	jsr StarScrollAuto
 	pla 
@@ -138,7 +216,7 @@ _defaultStarSpeed equ #$10
 	cmp #_defaultStarSpeed
 	bne :speedUpAgain ;) 
 
-	ldx #50
+	ldx #80
 	lda #_defaultStarSpeed
 	jsr StarScrollAuto
 
@@ -319,6 +397,11 @@ ScrollLeft
 HandleLoResInit
 	sta LORES
 	jsr ClearLoRes
+	inc GDemoState
+	jmp DemoMain
+HandleTextClear
+	sta TXTSET
+	jsr ClearText
 	inc GDemoState
 	jmp DemoMain
 
@@ -596,7 +679,7 @@ KfestLogo
 	db $55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5
 	db $aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5
 	db $aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5
-HandleDigawrite
+HandleScan
 	lda #40
 	tax
 	tay
@@ -604,29 +687,34 @@ HandleDigawrite
 
 	ldx #0
 ]writeLoop
-	lda _digawriteString,x
+	lda _scanningString,x
 	beq ]writeDone
 	sta Lo11+10,x
 	inx
 	phx
 	lda #18
-	tax
-	tay
-	jsr SimpleWait
+	jsr SimplerWait
 	plx
 	bra ]writeLoop
 ]writeDone
 	lda #$30
-	tax
-	tay
-	jsr SimpleWait
+	jsr SimplerWait
 
 	inc GDemoState
 	jmp DemoMain
-_digawriteString	asc "a DiGAROK presentation ...",00
+_scanningString	asc "Status: Scanning surface.",00
+_digawriteString	asc "an intro by DiGAROK ... ",00
 
 HandleShortWait
-	lda #30
+	lda #$30
+	tax
+	tay
+	jsr SimpleWait	
+	inc GDemoState
+	jmp DemoMain
+
+HandleMedWait
+	lda #$50
 	tax
 	tay
 	jsr SimpleWait	
@@ -1231,6 +1319,35 @@ Average8
 
 :doneLines    rts
 
+ClearText     ldx #40
+	lda #" "
+:loop	dex
+	sta Lo01,x
+	sta Lo02,x
+	sta Lo03,x
+	sta Lo04,x
+	sta Lo05,x
+	sta Lo06,x
+	sta Lo07,x
+	sta Lo08,x
+	sta Lo09,x
+	sta Lo10,x
+	sta Lo11,x
+	sta Lo12,x
+	sta Lo13,x
+	sta Lo14,x
+	sta Lo15,x
+	sta Lo16,x
+	sta Lo17,x
+	sta Lo18,x
+	sta Lo19,x
+	sta Lo20,x
+	sta Lo21,x
+	sta Lo22,x
+	sta Lo23,x
+	sta Lo24,x
+	bne :loop
+	rts 
 
 ClearLoRes	ldx #40
 :loop	dex
