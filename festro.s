@@ -42,7 +42,7 @@ DemoMain
 DemoSubroutineTable
 
 	dw HandleProdrop
-	dw HandleDigawrite
+*	dw HandleDigawrite
 	dw HandleShortWait
 	dw HandleStarScroll
 	dw HandleProdrop
@@ -82,19 +82,66 @@ DemoSubroutineTable
 	dw P8Quit
 
 HandleStarScroll
+_defaultStarSpeed equ #$10
 	lda #$1e
-:slowing	ldx #5
+:speedUp	ldx #5
 	pha
 	jsr StarScrollAuto
 	pla 
 	dec
-	cmp #$14 
-	bne :slowing
-	lda #$14
+	cmp #_defaultStarSpeed
+	bne :speedUp
+* full speed
+	ldx #50
+	lda #_defaultStarSpeed
 	jsr StarScrollAuto
-	ldx #55
-	lda #$14
+
+* --- diga
+	ldx #$0
+:loop	phx
+	lda #_defaultStarSpeed	; waitfirst
+	jsr SimplerWait
+	jsr ScrollLeft
+	jsr GenStarRight
+	plx 
+	lda _digawriteString,x
+	beq :digawriteDone	; done (zero terminated string)
+	sta Lo12+39
+	inx 
+	bra :loop
+
+* slow down?
+:digawriteDone
+	lda #_defaultStarSpeed
+:slowDown	ldx #1
+	pha
 	jsr StarScrollAuto
+	pla 
+	inc
+	inc
+	inc
+	inc
+	cmp #7*4+#_defaultStarSpeed 
+	bne :slowDown
+	lda #$50
+	jsr SimplerWait
+
+
+* speed up again
+
+	lda #$1e
+:speedUpAgain	ldx #5
+	pha
+	jsr StarScrollAuto
+	pla 
+	dec
+	cmp #_defaultStarSpeed
+	bne :speedUpAgain ;) 
+
+	ldx #50
+	lda #_defaultStarSpeed
+	jsr StarScrollAuto
+
 * second loop inserts planet
 	ldx #EarthTextWidth
 :loop2	phx
@@ -103,29 +150,23 @@ HandleStarScroll
 	lda _earthOffset
 	jsr DrawEarthLine
 	inc _earthOffset
-	lda #$14
-	tax
-	tay
-	jsr SimpleWait
+	lda #_defaultStarSpeed
+	jsr SimplerWait
 	plx
 	dex
 	bne :loop2
 * third loop scrolls onto screen more
-	ldx #$05
-:loop3	phx
-	jsr ScrollLeft
-	lda #$14
-	tax
-	tay
-	jsr SimpleWait
-	plx
-	dex
-	bne :loop3
-
-	lda #$64
-	tax
-	tay
-	jsr SimpleWait
+	lda #_defaultStarSpeed
+:slowDownAgain	ldx #1
+	pha
+	jsr StarScrollAuto
+	pla 
+	inc
+	inc
+	cmp #$24 
+	bne :slowDownAgain	; i take my varibls srs
+	lda #$25
+	jsr SimplerWait
 
 	inc GDemoState
 	jmp DemoMain
@@ -138,9 +179,7 @@ StarScrollAuto
 	jsr ScrollLeft
 	jsr GenStarRight
 	lda _starScrollAutoWait
-	tax
-	tay
-	jsr SimpleWait
+	jsr SimplerWait
 	plx
 	dex
 	bne :loop
@@ -1418,6 +1457,10 @@ DrawBufFullScreen
 * SafeWait
 * -silly triple loop, preserves AXY
 **************************************************
+SimplerWait	tax
+	tay
+	jsr SimpleWait
+	rts
 SimpleWait
 	sta _waitA
 	stx _waitX
