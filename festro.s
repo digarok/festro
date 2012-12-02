@@ -670,23 +670,26 @@ HandleProdrop
 :scanCharLoop
 	lda (srcPtr),y
 	cmp #" "	; SPACE
-]dropCharCompare equ *-1
+]dropCharCompare equ *-1	; we change this for GRaphics mode
 	beq :nextChar
-	and #%01111111	; clear high bit to indicate non-animated state
 
 	phy	; +1
 	phy	; +2
 	ldy #0
 	sta (dstPtr),y
+	
 	iny
 	pla	; +1
 	sta (dstPtr),y
 	lda _prodropScanLine
+	ora #%10000000	; set high bit to indicate non-animated state
+	
 	iny
 	sta (dstPtr),y
+
 	iny
 	jsr GetRand
-	and #%0111111	; decided to limit it to make the values a little
+	and #%01111111	; decided to limit it to make the values a little
 	; closer together.  #$00 - #$7f
 	; this particularly helps with gaps when nothing is
 	; falling because you started with few characters
@@ -756,8 +759,10 @@ HandleProdrop
 	beq :prodropUpdateLoop	; reset src pointer and do it all over
 	stz _prodropAnimDone	; hate to continually set this false, but we have time
 
+	ldy #2
+	lda (srcPtr),y ; now it's in our y value 
 	cmp #$80	; check for high bit
-	bcs ]dropIt	; not set? then we're animating it
+	blt ]dropIt	; not set? then we're animating it
 	ldy #3	; check random wait state
 	lda (srcPtr),y
 	beq ]setCharAnim	; is 0 so set it to animate on next pass
@@ -777,7 +782,7 @@ HandleProdrop
 	lda (srcPtr),y	; get our X value
 	tay
 	lda #" "
-]dropCharWrite equ *-1
+]dropCharWrite equ *-1	; we set this differently for GRaphics mode
 	sta (dstPtr),y
 * breath... holy crap all that just to draw a space at X,Y
 	ldy #2
@@ -805,9 +810,10 @@ HandleProdrop
 	bra ]nextAnimChar
 
 ]setCharAnim
-	lda (srcPtr)
-	ora #%10000000	; set high bit
-	sta (srcPtr)
+	ldy #2
+	lda (srcPtr),y
+	and #%01111111	; clear high bit
+	sta (srcPtr),y
 
 
 ]nextAnimChar
