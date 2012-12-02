@@ -44,8 +44,8 @@ DemoSubroutineTable
 	dw HandleProdrop
 	dw HandleDigawrite
 	dw HandleShortWait
-	dw HandleProdrop
 	dw HandleStarScroll
+	dw HandleProdrop
 	dw HandleSwipeWrite
 	dw HandleShortWait
 	dw HandleShortWait
@@ -82,20 +82,96 @@ DemoSubroutineTable
 	dw P8Quit
 
 HandleStarScroll
-	ldx #100
-:loop	phx
+	lda #$1e
+:slowing	ldx #5
+	pha
+	jsr StarScrollAuto
+	pla 
+	dec
+	cmp #$14 
+	bne :slowing
+	lda #$14
+	jsr StarScrollAuto
+	ldx #55
+	lda #$14
+	jsr StarScrollAuto
+* second loop inserts planet
+	ldx #EarthTextWidth
+:loop2	phx
 	jsr ScrollLeft
 	jsr GenStarRight
+	lda _earthOffset
+	jsr DrawEarthLine
+	inc _earthOffset
 	lda #$14
 	tax
 	tay
 	jsr SimpleWait
 	plx
 	dex
-	bne :loop
+	bne :loop2
+* third loop scrolls onto screen more
+	ldx #$05
+:loop3	phx
+	jsr ScrollLeft
+	lda #$14
+	tax
+	tay
+	jsr SimpleWait
+	plx
+	dex
+	bne :loop3
+
+	lda #$64
+	tax
+	tay
+	jsr SimpleWait
+
 	inc GDemoState
 	jmp DemoMain
+_earthOffset	db #$00
 
+* A = wait , X = reps
+StarScrollAuto
+	sta _starScrollAutoWait
+:loop	phx
+	jsr ScrollLeft
+	jsr GenStarRight
+	lda _starScrollAutoWait
+	tax
+	tay
+	jsr SimpleWait
+	plx
+	dex
+	bne :loop
+	rts
+_starScrollAutoWait db 0
+
+* Always draws a line on the right
+_drawEarthLineXOffset equ #39
+DrawEarthLine 
+	tax
+	lda EarthTextWidth*0+EarthText,x
+	sta Lo07+_drawEarthLineXOffset
+	lda EarthTextWidth*1+EarthText,x
+	sta Lo08+_drawEarthLineXOffset
+	lda EarthTextWidth*2+EarthText,x
+	sta Lo09+_drawEarthLineXOffset
+	lda EarthTextWidth*3+EarthText,x
+	sta Lo10+_drawEarthLineXOffset
+	lda EarthTextWidth*4+EarthText,x
+	sta Lo11+_drawEarthLineXOffset
+	lda EarthTextWidth*5+EarthText,x
+	sta Lo12+_drawEarthLineXOffset
+	lda EarthTextWidth*6+EarthText,x
+	sta Lo13+_drawEarthLineXOffset
+	lda EarthTextWidth*7+EarthText,x
+	sta Lo14+_drawEarthLineXOffset
+	lda EarthTextWidth*8+EarthText,x
+	sta Lo15+_drawEarthLineXOffset
+	lda EarthTextWidth*9+EarthText,x
+	sta Lo16+_drawEarthLineXOffset
+	rts
 
 GenStarRight
 _maxStarHeight	equ #24	
