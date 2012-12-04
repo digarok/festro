@@ -82,13 +82,105 @@ DemoSubroutineTable
 	dw HandleShortWait
 	dw HandleTextClear	
 	dw HandleSwipeWrite
-	dw HandleMedWait
+	dw HandleShortWait
 	dw HandleGreetScroll
 	dw HandleShortWait
 	dw HandleProdrop
+	dw HandleTextClear
+	dw HandleFinalScreen
 	dw P8Quit
 
+HandleFinalScreen
+	lda #FinalText
+	sta srcPtr
+	lda #>FinalText
+	sta srcPtr+1
+
+	lda #0
+:lineLoop	pha
+	asl
+	tax
+	lda LoLineTable,x
+	sta dstPtr
+	lda LoLineTable+1,x
+	sta dstPtr+1
+	ldy #0
+:copyLoop	lda (srcPtr),y
+	beq :nextLine
+	cmp #$ff
+	beq :done
+	sta (dstPtr),y
+	iny
+	lda #2
+	jsr SimplerWait
+	bra :copyLoop
+:nextLine	iny
+	tya
+	clc
+	adc srcPtr
+	sta srcPtr
+	bcc :noCarry
+	inc srcPtr+1
+:noCarry	pla
+	inc
+	bra :lineLoop
+
+:done	pla	;woops
+
+* FALLTHROUGH to menu
+
+	stz DSEG0
+:noKey
+	lda #$6
+	jsr SimplerWait
+	lda DSEG0
+	beq :blink
+	dec DSEG0
+	lda #"?"
+	bra :store
+:blink	inc DSEG0
+	lda #" "
+:store	sta Lo19+23
+	bra :chkKey
+:chkKey	lda KEY 
+	cmp #$80
+	blt :noKey
+	sta STROBE
+	cmp #"f"
+	beq :goFire
+	cmp #"F"
+	beq :goFire
+	inc GDemoState
+	jmp DemoMain
+:goFire	bra HiddenFire
+
+HiddenFire 
+              lda #$90
+	sta GFireRatio
+	sta LORES
+	jsr ClearLoRes
+:noKey	jsr FirePass
+	lda KEY
+	cmp #$80
+	blt :noKey
+	sta STROBE
+              sta TXTSET
+              jsr ClearText
+	jmp DemoMain
+	
+
 HandleGreetScroll
+	lda #_cwoz
+	sta srcPtr
+	lda #>_cwoz
+	sta srcPtr+1
+	ldx #23
+	ldy #21
+	lda #$30
+	jsr DrawStringXYWait
+	lda #$30
+	jsr SimplerWait
+
 :loop	jsr ScrollRightUp
 	inc _creditScrollCounter
 	lda #26
@@ -98,7 +190,7 @@ HandleGreetScroll
 	cmp #01
 	beq :next
 	inc _creditScrollTick
-	lda #05
+	lda #$13
 	jsr SimplerWait
 	bra :loop
 :next	stz _creditScrollTick
@@ -192,7 +284,7 @@ _creditScrollTick db #$00
 _creditScrollCounter db #$00
 _creditStringIdx db #$00
 
-_c1	asc "Woz",00
+_cwoz	asc "Woz",00
 _c2	asc "Brutal Deluxe",00
 _c3	asc "Belgo",00
 _c4	asc "BLuRry",00
@@ -214,7 +306,7 @@ _c19          asc "         WATCHING",00
 _cblank	asc "",00
 
 _creditStringsTable
-	da _c1,_c2,_c3,_c4,_c5,_c6,_c7,_c8,_c9,_c10
+	da _c2,_c3,_c4,_c5,_c6,_c7,_c8,_c9,_c10
 	da _c11,_c12,_cblank,_c13,_c14,_c15,_cblank
 	da _c16,_cblank,_cblank,_c17,_c18,_c19
 	da _cblank,_cblank,_cblank,_cblank,_cblank
@@ -256,7 +348,7 @@ HandleMapScroll
 	sta srcPtr+1
 	ldx #15
 	ldy #08
-	lda #$18
+	lda #$10
 	jsr DrawStringXYWait
 	lda #$10
 	jsr SimplerWait
@@ -267,7 +359,7 @@ HandleMapScroll
 	sta srcPtr+1
 	ldx #15
 	ldy #08
-	lda #$20
+	lda #$18
 	jsr DrawStringXYWait
 	lda #$20
 	jsr SimplerWait
@@ -1123,8 +1215,8 @@ HandleScan03
 	jsr DrawStringXYWait
 	lda #$15
 	jsr SimplerWait
-	lda #$05
 
+	lda #$03
 :flashenLoop	pha
 	lda #_scanStr20	;Thermal
 	sta srcPtr
@@ -1143,9 +1235,9 @@ HandleScan03
 	sta srcPtr+1
 	ldx #_boxX+2
 	ldy #_boxY+6
-	lda #$10
+	lda #$08
 	jsr DrawStringXYWait
-	lda #$15
+	lda #$10
 	jsr SimplerWait
 	pla
 	dec
@@ -1205,7 +1297,7 @@ _scanStr01	asc "STATUS:",00
 _scanStr08	asc "SCANNING",00
 _scanStr08b	asc "        ",00
 _scanStr09	asc "KCMO",00
-_scanStr09b	asc "  _.",00	;lol
+_scanStr09b	asc "  .-",00	;lol
 _scanStr02	asc "LOCATED",00
 _scanStr03	asc "Virgo Supergroup,",00
 _scanStr04	asc "Local Group,",00
@@ -1467,7 +1559,7 @@ HandleSwipeWrite
 	sta _swipeMaxWidth	; set max width
 	lda #0
 	sta _swipeXOffset	; set x position
-	lda #3
+	lda #2
 	sta _swipeYOffset	; set y position
 
 ** DA LOOP!!! does one full pass of all lines.. this is the OUTERMOST LOOP

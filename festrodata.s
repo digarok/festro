@@ -1,3 +1,30 @@
+FinalText
+ asc "",00
+ asc " KFest is the world's only annual",00
+ asc " convention dedicated to the Apple II",00
+ asc " and it's the largest gathering of ",00
+ asc " active Apple II users you'll ever see!",00
+ asc "",00
+ asc " The next KFest is July 23-28, 2013.",00
+ asc "",00
+ asc " You can get more info on their site *",00
+ asc "             www.kansasfest.org",00
+ asc "",00
+ asc "",00
+ asc "* I'm not affiliated with KansasFest.",00
+ asc "  I was just looking for an excuse to",00
+ asc "  write some code.",00
+ asc "",00
+ asc "",00
+ asc "",00
+ asc "                The End?",00
+ asc "",00
+ asc "",00
+ asc "              Press A Key",00
+ hex ff,ff
+
+
+
 
 FireTextHeight equ #20 ; buffer height
 FireTextWidth equ #23 ; buffer width (INCLUDE 00 BYTE!!)
