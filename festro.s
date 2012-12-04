@@ -40,13 +40,15 @@ DemoMain
 	bra :mainLoop
 
 DemoSubroutineTable
-
 	dw HandleProdrop
+	dw HandleScan01
+	dw HandleTextClear
 	dw HandleShortWait
 	dw HandleStarScroll
+	dw HandleScan02
 	dw HandleTextClear
-	dw HandleScan
 	dw HandleMapScroll
+	dw HandleScan03
 
 	dw HandleLoResInit
 	dw HandleFireRatio20
@@ -64,6 +66,7 @@ DemoSubroutineTable
 	dw HandleFireStateT
 	dw HandleFireState1
 	dw HandleFireState1
+	dw HandleFireStateYear
 	dw HandleFireState1
 	dw HandleFireRatio20
 	dw HandleFireState1
@@ -71,17 +74,151 @@ DemoSubroutineTable
 	dw HandleFireRatio01
 	dw HandleFireState1
 	dw HandleKfestLogo
+	dw HandleMedWait
 	dw HandleShortWait
-	dw HandleShortWait
-	dw SetProdropGr
-	dw HandleProdrop
+	dw HandleSplitSlide
+*	dw SetProdropGr
+*	dw HandleProdrop
 	dw HandleShortWait
 	dw HandleTextClear	
 	dw HandleSwipeWrite
-	dw HandleShortWait
+	dw HandleMedWait
+	dw HandleGreetScroll
 	dw HandleShortWait
 	dw HandleProdrop
 	dw P8Quit
+
+HandleGreetScroll
+:loop	jsr ScrollRightUp
+	inc _creditScrollCounter
+	lda #26
+	jsr SimplerWait
+
+	lda _creditScrollTick
+	cmp #01
+	beq :next
+	inc _creditScrollTick
+	lda #05
+	jsr SimplerWait
+	bra :loop
+:next	stz _creditScrollTick
+	lda _creditStringIdx
+	asl 
+	tax
+	lda _creditStringsTable+1,x
+	beq :noStrings
+	sta srcPtr+1
+	lda _creditStringsTable,x
+	sta srcPtr
+
+	inc _creditStringIdx	;++
+
+	ldx #23
+	ldy #23
+	lda #$10
+	jsr DrawStringXYWait
+	bra :skipWait
+:noStrings
+	lda #$08
+	jsr SimplerWait
+:skipWait	lda _creditScrollCounter
+	cmp #80
+	beq :done
+	bra :loop
+
+:done	inc GDemoState
+	jmp DemoMain
+
+
+
+ScrollRightUp 
+	ldx #22	, x start
+
+:loop	lda Lo02,x
+	sta Lo01,x
+	lda Lo03,x
+	sta Lo02,x
+	lda Lo04,x
+	sta Lo03,x
+	lda Lo05,x
+	sta Lo04,x
+	lda Lo06,x
+	sta Lo05,x
+	lda Lo07,x
+	sta Lo06,x
+	lda Lo08,x
+	sta Lo07,x
+	lda Lo09,x
+	sta Lo08,x
+	lda Lo10,x
+	sta Lo09,x
+	lda Lo11,x
+	sta Lo10,x
+	lda Lo12,x
+	sta Lo11,x
+	lda Lo13,x
+	sta Lo12,x
+	lda Lo14,x
+	sta Lo13,x
+	lda Lo15,x
+	sta Lo14,x
+	lda Lo16,x
+	sta Lo15,x
+	lda Lo17,x
+	sta Lo16,x
+	lda Lo18,x
+	sta Lo17,x
+	lda Lo19,x
+	sta Lo18,x
+	lda Lo20,x
+	sta Lo19,x
+	lda Lo21,x
+	sta Lo20,x
+	lda Lo22,x
+	sta Lo21,x
+	lda Lo23,x
+	sta Lo22,x
+	lda Lo24,x
+	sta Lo23,x
+	lda #" "
+	sta Lo24,x
+	inx 
+	cpx #40
+	beq :done
+	jmp :loop
+:done	rts
+
+_creditScrollTick db #$00
+_creditScrollCounter db #$00
+_creditStringIdx db #$00
+
+_c1	asc "Woz",00
+_c2	asc "Brutal Deluxe",00
+_c3	asc "Belgo",00
+_c4	asc "BLuRry",00
+_c5	asc "krUe",00
+_c6	asc "Ninjaforce",00
+_c7	asc "FTA",00
+_c8	asc "RedHot ;)",00
+_c9	asc "ECC",00
+_c10	asc "antoine",00
+_c11	asc "MJM",00
+_c12	asc "Gamebits/JuicedGS",00
+_c13	asc "KFest Organizers",00
+_c14	asc "      Presenters",00
+_c15	asc "      Attendees",00
+_c16	asc "        YOU!",00
+_c17	asc "THANKS",00
+_c18          asc "      FOR",00
+_c19          asc "         WATCHING",00
+_cblank	asc "",00
+
+_creditStringsTable
+	da _c1,_c2,_c3,_c4,_c5,_c6,_c7,_c8,_c9,_c10
+	da _c11,_c12,_cblank,_c13,_c14,_c15,_cblank
+	da _c16,_cblank,_cblank,_c17,_c18,_c19
+	da _cblank,_cblank,_cblank,_cblank,_cblank
+	dw 0000
 
 HandleMapScroll
 	ldx #WorldMapWidth-40
@@ -96,8 +233,50 @@ HandleMapScroll
 	plx 
 	dex
 	bne :scrollLoop
+	ldx #5
+:blinkenLoop	phx
+	lda #$13
+	jsr SimplerWait
+	lda #" "
+	sta Lo07+16
+	lda #$20
+	jsr SimplerWait
+	lda #"*"
+	sta Lo07+16
+	plx
+	dex
+	bne :blinkenLoop
+
+
+	lda #$03
+:flashenLoop	pha
+	lda #_scanStr09b	;Scanning BLANK
+	sta srcPtr
+	lda #>_scanStr09b
+	sta srcPtr+1
+	ldx #15
+	ldy #08
+	lda #$18
+	jsr DrawStringXYWait
+	lda #$10
+	jsr SimplerWait
+
+	lda #_scanStr09	;Scanning
+	sta srcPtr
+	lda #>_scanStr09
+	sta srcPtr+1
+	ldx #15
+	ldy #08
+	lda #$20
+	jsr DrawStringXYWait
+	lda #$20
+	jsr SimplerWait
+	pla
+	dec
+	bne :flashenLoop
 	lda #$30
 	jsr SimplerWait
+
 	inc GDemoState
 	jmp DemoMain
 
@@ -199,9 +378,9 @@ _defaultStarSpeed equ #$10
 	inc
 	inc
 	inc
-	cmp #6*4+#_defaultStarSpeed 
+	cmp #8*4+#_defaultStarSpeed 
 	bne :slowDown
-	lda #$50
+	lda #$40
 	jsr SimplerWait
 
 
@@ -241,7 +420,7 @@ _defaultStarSpeed equ #$10
 	pla 
 	inc
 	inc
-	cmp #$24 
+	cmp #$28 
 	bne :slowDownAgain	; i take my varibls srs
 	lda #$25
 	jsr SimplerWait
@@ -497,6 +676,16 @@ FirePass	pha
 	pla
 	rts
 
+HandleFireStateYear
+	lda #$20
+:loop	ldx #_sprData_YEAR	
+	ldy #>_sprData_YEAR
+	jsr FirePass3	; preserves A,X,Y
+	dec
+	bne :loop
+	inc GDemoState
+	jmp DemoMain
+
 * A = count X=lowbyte  Y=hibyte
 FirePass2	
 	pha
@@ -512,6 +701,20 @@ FirePass2
 	pla
 	rts
 
+* A = count X=lowbyte  Y=hibyte
+FirePass3	
+	pha
+	phx
+	phy
+	jsr MakeHeat
+	jsr Scroll8
+	ply
+	plx
+	jsr DrawSpriteMaskBig
+	jsr Average8
+	jsr DrawBufFullScreen
+	pla
+	rts
 
 **************************************************
 * Color look up table.
@@ -626,84 +829,394 @@ HandleKfestLogo
 	inc GDemoState
 	jmp DemoMain
 
+HandleSplitSlide
+	ldy #$12
+:passStart	ldx #0
 
+:loop	lda Lo02,x
+	sta Lo01,x
+	lda Lo03,x
+	sta Lo02,x
+	lda Lo04,x
+	sta Lo03,x
+	lda Lo05,x
+	sta Lo04,x
+	lda Lo06,x
+	sta Lo05,x
+	lda Lo07,x
+	sta Lo06,x
+	lda Lo08,x
+	sta Lo07,x
+	lda Lo09,x
+	sta Lo08,x
+	lda Lo10,x
+	sta Lo09,x
+	lda Lo11,x
+	sta Lo10,x
+	lda Lo12,x
+	sta Lo11,x
+	lda Lo13,x
+	sta Lo12,x
 
-KfestLogoWidth equ #40
-KfestLogoHeight equ #24
-KfestLogo
-	db $5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa
-	db $5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa,$5a,$aa
-	db $5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55
-	db $5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55
-	db $55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a
-	db $55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a,$55,$5a
-	db $50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55
-	db $50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55,$50,$55
-	db $05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50
-	db $05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50
-	db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-	db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-	db $00,$00,$00,$00,$00,$70,$70,$00,$00,$00,$70,$70,$60,$70,$70,$70,$70,$70,$60,$70
-	db $70,$70,$70,$70,$60,$60,$70,$70,$70,$70,$60,$70,$70,$70,$70,$70,$70,$60,$e0,$e0
-	db $00,$00,$00,$00,$00,$77,$77,$00,$70,$77,$07,$00,$00,$77,$77,$00,$00,$00,$00,$77
-	db $77,$00,$00,$00,$00,$77,$77,$00,$00,$07,$00,$00,$00,$77,$77,$00,$00,$00,$00,$00
-	db $00,$00,$00,$00,$00,$77,$77,$77,$07,$00,$00,$00,$00,$77,$77,$70,$70,$00,$00,$77
-	db $77,$70,$70,$00,$00,$07,$77,$77,$70,$00,$00,$00,$00,$77,$77,$00,$00,$00,$00,$00
-	db $00,$00,$00,$00,$00,$77,$77,$77,$70,$00,$00,$00,$00,$77,$77,$07,$07,$00,$00,$77
-	db $77,$07,$07,$00,$00,$00,$07,$77,$77,$70,$00,$00,$00,$77,$77,$00,$00,$00,$00,$00
-	db $00,$00,$00,$00,$00,$77,$77,$00,$07,$77,$70,$00,$00,$77,$77,$00,$00,$00,$00,$77
-	db $77,$00,$00,$00,$00,$70,$00,$00,$77,$77,$00,$00,$00,$77,$77,$00,$00,$00,$00,$00
-	db $0e,$0e,$0e,$0e,$06,$07,$07,$00,$00,$00,$07,$07,$02,$07,$07,$00,$00,$00,$00,$07
-	db $07,$07,$07,$07,$02,$07,$07,$07,$07,$00,$00,$00,$00,$07,$07,$00,$00,$00,$00,$00
-	db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-	db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-	db $01,$01,$01,$01,$01,$01,$90,$99,$09,$09,$99,$90,$01,$01,$90,$99,$09,$99,$90,$01
-	db $01,$01,$90,$99,$99,$00,$01,$00,$09,$09,$09,$99,$99,$09,$00,$01,$01,$01,$01,$01
-	db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$99,$99,$00,$00,$99,$99,$00,$99,$99,$00
-	db $00,$00,$00,$99,$99,$00,$00,$00,$00,$90,$99,$99,$90,$00,$00,$00,$00,$00,$00,$00
-	db $00,$00,$00,$00,$00,$00,$00,$00,$90,$99,$09,$00,$00,$00,$99,$99,$00,$99,$99,$00
-	db $00,$00,$00,$99,$99,$00,$00,$00,$00,$00,$00,$00,$99,$99,$00,$00,$00,$00,$00,$00
-	db $00,$00,$00,$00,$00,$00,$00,$90,$99,$09,$00,$00,$00,$00,$99,$99,$00,$99,$99,$00
-	db $00,$00,$00,$99,$99,$00,$00,$00,$00,$00,$00,$00,$99,$99,$00,$00,$00,$00,$00,$00
-	db $00,$00,$00,$00,$00,$00,$99,$99,$99,$90,$90,$90,$00,$00,$09,$99,$90,$99,$09,$00
-	db $00,$00,$00,$99,$99,$00,$00,$00,$09,$90,$90,$90,$99,$09,$00,$00,$00,$00,$00,$00
-	db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-	db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-	db $05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50
-	db $05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50,$05,$50
-	db $55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05
-	db $55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05,$55,$05
-	db $a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55
-	db $a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55
-	db $55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5
-	db $55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5,$55,$a5
-	db $aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5
-	db $aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5,$aa,$a5
-HandleScan
-	lda #40
-	tax
-	tay
-	jsr SimpleWait
-
-	ldx #0
-]writeLoop
-	lda _scanningString,x
-	beq ]writeDone
-	sta Lo11+10,x
-	inx
-	phx
-	lda #18
+	lda Lo23,x
+	sta Lo24,x
+	lda Lo22,x
+	sta Lo23,x
+	lda Lo21,x
+	sta Lo22,x
+	lda Lo20,x
+	sta Lo21,x
+	lda Lo19,x
+	sta Lo20,x
+	lda Lo18,x
+	sta Lo19,x
+	lda Lo17,x
+	sta Lo18,x
+	lda Lo16,x
+	sta Lo17,x
+	lda Lo15,x
+	sta Lo16,x
+	lda Lo14,x
+	sta Lo15,x
+	lda Lo13,x
+	sta Lo14,x
+	stz Lo13,x
+	inx 
+	cpx #40
+	beq :passComplete
+	jmp :loop
+:passComplete	dey
+	beq :done
+	phy
+	lda #$16
 	jsr SimplerWait
+	ply
+	jmp :passStart
+
+:done	inc GDemoState
+	jmp DemoMain
+
+
+
+* set zero page ptr 00 to source of null terminated string
+* x = x
+* y = y
+DrawStringXY
+	pha
+	phx
+	phy
+	tya
+	asl	; get pointer to line
+	tay
+	lda LoLineTable,y
+	sta dstPtr
+	lda LoLineTable+1,y
+	sta dstPtr+1
+	txa
+	clc
+	adc dstPtr
+	sta dstPtr
+	bcc :noCarry
+	inc dstPtr+1
+:noCarry	ldy #0
+:loop	lda (srcPtr),y
+	beq :done
+	sta (dstPtr),y
+	iny 
+	bra :loop
+:done	ply
 	plx
-	bra ]writeLoop
-]writeDone
+	pla
+	rts
+
+* set zero page ptr 00 to source of null terminated string
+* A = wait
+* x = x
+* y = y
+DrawStringXYWait
+	pha
+	phx
+	phy
+	sta _drawWait
+	tya
+	asl	; get pointer to line
+	tay
+	lda LoLineTable,y
+	sta dstPtr
+	lda LoLineTable+1,y
+	sta dstPtr+1
+	txa
+	clc
+	adc dstPtr
+	sta dstPtr
+	bcc :noCarry
+	inc dstPtr+1
+:noCarry	ldy #0
+:loop	lda (srcPtr),y
+	beq :done
+	sta (dstPtr),y
+	iny 
+	lda _drawWait
+	jsr SimplerWait
+	bra :loop
+:done	ply
+	plx
+	pla
+	rts
+_drawWait	db 0
+
+HandleScan01
+	lda #40
+	jsr SimplerWait
+* first draw box
+	jsr DrawBoxAnim
+
 	lda #$30
+	jsr SimplerWait
+	lda #_scanStr01	;STATUS
+	sta srcPtr
+	lda #>_scanStr01
+	sta srcPtr+1
+	ldx #_boxX+2
+	ldy #_boxY+2
+	jsr DrawStringXY
+
+	lda #$30
+	jsr SimplerWait
+
+	lda #$05
+:flashenLoop	pha
+	lda #_scanStr08	;Scanning
+	sta srcPtr
+	lda #>_scanStr08
+	sta srcPtr+1
+	ldx #_boxX+10
+	ldy #_boxY+2
+	lda #$10
+	jsr DrawStringXYWait
+	lda #$20
+	jsr SimplerWait
+
+	lda #_scanStr08b	;Scanning BLANK
+	sta srcPtr
+	lda #>_scanStr08b
+	sta srcPtr+1
+	ldx #_boxX+10
+	ldy #_boxY+2
+	lda #$10
+	jsr DrawStringXYWait
+	lda #$15
+	jsr SimplerWait
+	pla
+	dec
+	bne :flashenLoop
+
+	inc GDemoState
+	jmp DemoMain
+
+	
+HandleScan02
+	lda #40
+	jsr SimplerWait
+* first draw box
+	jsr DrawBoxAnim
+	
+	lda #$30
+	jsr SimplerWait
+	lda #_scanStr01	;STATUS
+	sta srcPtr
+	lda #>_scanStr01
+	sta srcPtr+1
+	ldx #_boxX+2
+	ldy #_boxY+2
+	jsr DrawStringXY
+
+	lda #$30
+	jsr SimplerWait
+
+	lda #_scanStr02	;Located
+	sta srcPtr
+	lda #>_scanStr02
+	sta srcPtr+1
+	ldx #_boxX+10
+	ldy #_boxY+2
+	lda #$10
+	jsr DrawStringXYWait
+
+	lda #_scanStr03	; virgo
+	sta srcPtr
+	lda #>_scanStr03
+	sta srcPtr+1
+	ldx #_boxX+5
+	ldy #_boxY+3
+	lda #$10
+	jsr DrawStringXYWait
+
+	lda #$30
+	jsr SimplerWait
+
+	lda #_scanStr04	; Local
+	sta srcPtr
+	lda #>_scanStr04
+	sta srcPtr+1
+	ldx #_boxX+5
+	ldy #_boxY+4
+	lda #$10
+	jsr DrawStringXYWait
+
+	lda #$30
+	jsr SimplerWait
+
+	lda #_scanStr05	; Milky
+	sta srcPtr
+	lda #>_scanStr05
+	sta srcPtr+1
+	ldx #_boxX+5
+	ldy #_boxY+5
+	lda #$10
+	jsr DrawStringXYWait
+
+	lda #$30
+	jsr SimplerWait
+
+	lda #_scanStr06	; Earth
+	sta srcPtr
+	lda #>_scanStr06
+	sta srcPtr+1
+	ldx #_boxX+5
+	ldy #_boxY+6
+	lda #$10
+	jsr DrawStringXYWait
+
+	lda #$30	
 	jsr SimplerWait
 
 	inc GDemoState
 	jmp DemoMain
+
+HandleScan03
+	lda #40
+	jsr SimplerWait
+* first draw box
+	jsr DrawBoxAnim
+
+	lda #$30
+	jsr SimplerWait
+	lda #_scanStr01	;STATUS
+	sta srcPtr
+	lda #>_scanStr01
+	sta srcPtr+1
+	ldx #_boxX+2
+	ldy #_boxY+2
+	jsr DrawStringXY
+
+	lda #$30
+	jsr SimplerWait
+
+	lda #_scanStr19	;awesome
+	sta srcPtr
+	lda #>_scanStr19
+	sta srcPtr+1
+	ldx #_boxX+2
+	ldy #_boxY+4
+	lda #$10
+	jsr DrawStringXYWait
+	lda #$15
+	jsr SimplerWait
+	lda #$05
+
+:flashenLoop	pha
+	lda #_scanStr20	;Thermal
+	sta srcPtr
+	lda #>_scanStr20
+	sta srcPtr+1
+	ldx #_boxX+2
+	ldy #_boxY+6
+	lda #$10
+	jsr DrawStringXYWait
+	lda #$20
+	jsr SimplerWait
+
+	lda #_scanStr20b	;Thermal BLANK
+	sta srcPtr
+	lda #>_scanStr20b
+	sta srcPtr+1
+	ldx #_boxX+2
+	ldy #_boxY+6
+	lda #$10
+	jsr DrawStringXYWait
+	lda #$15
+	jsr SimplerWait
+	pla
+	dec
+	bne :flashenLoop
+
+	inc GDemoState
+	jmp DemoMain
+
+DrawBoxAnim
+_boxX	equ #13
+_boxY	equ #14
+	stz _gapCounter	;gap counter
+:boxExpandLoop	
+	lda #_boxStrTop
+	sta srcPtr
+	lda #>_boxStrTop
+	sta srcPtr+1
+
+	ldy #_boxY	;y position
+	ldx #_boxX	;x position
+	jsr DrawStringXY ; 0zp, x, y
+	
+	lda _gapCounter
+	beq :noLines
+	lda #_boxStrMid
+	sta srcPtr
+	lda #>_boxStrMid
+	sta srcPtr+1
+	lda _gapCounter
+:middleLoop	iny
+	jsr DrawStringXY
+	dec
+	bne :middleLoop
+:noLines	iny 
+	lda #_boxStrBot
+	sta srcPtr
+	lda #>_boxStrBot
+	sta srcPtr+1
+	jsr DrawStringXY
+
+	inc _gapCounter
+	lda _gapCounter
+	cmp #$08
+	beq :doneBox
+	lda #$10
+	jsr SimplerWait
+	bra :boxExpandLoop
+:doneBox	
+	rts
+
+_gapCounter	db 0
+
+_boxStrTop	asc " _______________________ ",00
+_boxStrMid	asc "|                       |",00
+_boxStrBot	asc "|_______________________|",00
+_scanStr01	asc "STATUS:",00
+_scanStr08	asc "SCANNING",00
+_scanStr08b	asc "        ",00
+_scanStr09	asc "KCMO",00
+_scanStr09b	asc "  _.",00	;lol
+_scanStr02	asc "LOCATED",00
+_scanStr03	asc "Virgo Supergroup,",00
+_scanStr04	asc "Local Group,",00
+_scanStr05	asc "Milky Way,",00
+_scanStr06	asc "Earth",00
+_scanStr07	asc "Scan Surface",00
+_scanStr19	asc "Apple // Event Located",00
+_scanStr20	asc "BEGIN THERMAL SCAN!",00
+_scanStr20b	asc "                   ",00
 _scanningString	asc "Status: Scanning surface.",00
-_digawriteString	asc "an intro by DiGAROK ... ",00
+_digawriteString	asc " an intro by DiGAROK ",00
 
 HandleShortWait
 	lda #$30
@@ -952,7 +1465,7 @@ HandleSwipeWrite
 	sta _swipeMaxHeight	; set max height
 	lda #FireTextWidth
 	sta _swipeMaxWidth	; set max width
-	lda #9
+	lda #0
 	sta _swipeXOffset	; set x position
 	lda #3
 	sta _swipeYOffset	; set y position
@@ -1097,6 +1610,46 @@ DrawSpriteMask
 	bne :lineLoop
 	rts	
 
+_spriteBigWidth equ #39
+_spriteBigHeight equ #12
+_spriteBigDrawRow db 0
+DrawSpriteMaskBig
+	stx srcPtr
+	sty srcPtr+1	; points to first char of sprite
+	lda #_spriteBigHeight
+	sta _spriteBigDrawRow
+	lda #FBufWidth*_fbufOffsetY+FBUF+1
+	sta dstPtr
+	lda #>FBufWidth*_fbufOffsetY+FBUF+1
+	sta dstPtr+1	; points to first char of buffer with offsets
+
+:lineLoop	ldy #0
+:loop1	lda (srcPtr),y
+	beq :skip1
+	cmp #1
+	bne :notRand1
+	jsr GetRandLow
+:notRand1	sta (dstPtr),y
+:skip1	iny
+	cpy #_spriteBigWidth
+	bne :loop1
+	lda srcPtr
+	clc 
+	adc #_spriteBigWidth
+	sta srcPtr
+	bcc :noFlip1
+	inc srcPtr+1
+:noFlip1	lda dstPtr
+	clc
+	adc #FBufWidth
+	sta dstPtr
+	bcc :noFlip2
+	inc dstPtr+1
+:noFlip2
+	dec _spriteBigDrawRow
+	lda _spriteBigDrawRow
+	bne :lineLoop
+	rts	
 
 
 **************************************************
@@ -1580,9 +2133,13 @@ DrawBufFullScreen
 * SafeWait
 * -silly triple loop, preserves AXY
 **************************************************
-SimplerWait	tax
+SimplerWait	phx
+	phy
+	tax
 	tay
 	jsr SimpleWait
+	ply
+	plx
 	rts
 SimpleWait
 	sta _waitA
