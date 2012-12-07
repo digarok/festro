@@ -40,6 +40,7 @@ DemoMain
 	bra :mainLoop
 
 DemoSubroutineTable
+
 	dw HandleProdrop
 	dw HandleScan01
 	dw HandleTextClear
@@ -77,10 +78,14 @@ DemoSubroutineTable
 	dw HandleMedWait
 	dw HandleShortWait
 	dw HandleSplitSlide
-*	dw SetProdropGr
-*	dw HandleProdrop
+
+	dw HandleAppleDraw
+	dw SetProdropGr
+	dw HandleProdrop
+	dw SetProdropText
 	dw HandleShortWait
-	dw HandleTextClear	
+	dw HandleTextClear
+
 	dw HandleSwipeWrite
 	dw HandleShortWait
 	dw HandleGreetScroll
@@ -89,6 +94,99 @@ DemoSubroutineTable
 	dw HandleTextClear
 	dw HandleFinalScreen
 	dw P8Quit
+
+HandleAppleDraw
+:mainLoop
+	lda #1
+	sta _appleDone
+
+	lda #AppleLogo
+	sta srcPtr
+	lda #>AppleLogo
+	sta srcPtr+1
+
+	
+	lda #_appleOffsetY
+	sta _currentY
+
+:lineStart	asl 
+	tax
+	lda LoLineTable,x
+	sta dstPtr
+	lda LoLineTable+1,x
+	sta dstPtr+1
+
+	lda dstPtr	; add offset
+	clc
+	adc #_appleOffsetX
+	sta dstPtr
+	bcc :noCarry2
+	inc dstPtr+1
+:noCarry2
+		; src = buffer
+		; dst = screen
+
+
+	ldy #$00
+:drawLoop	lda (srcPtr),y
+*	bra :noMagic
+	cmp (dstPtr),y
+	beq :nextChar
+	stz _appleDone
+	jsr GetRand
+	cmp #$00	; occasional black pixel @todo
+	beq :noMagic
+	cmp #$F8	; had to add in a way to keep it from
+	blt :noMagic	; getting stuck so now it occasionally puts
+	lda (srcPtr),y	; the right pixel even when it wasn't 
+:noMagic	sta (dstPtr),y              ; found by getrand.  (because it's only pseudorandom)
+
+:nextChar	iny
+	cpy #AppleLogoWidth
+	bne :drawLoop
+:nextLine     lda srcPtr
+	clc
+	adc #AppleLogoWidth
+	sta srcPtr
+	bcc :noCarry1
+	inc srcPtr+1
+:noCarry1	
+	inc _currentY	; handle screen offset
+	lda _currentY
+	cmp #AppleLogoHeight+_appleOffsetY
+	bne :lineStart
+		
+:donePass	lda #$5
+	jsr SimplerWait
+	lda _appleDone
+	beq :mainLoop
+	lda #$33
+	jsr SimplerWait
+	inc GDemoState
+	jmp DemoMain
+	
+_currentY	db #$00
+_appleDone	db #$00
+_appleOffsetX equ 10
+_appleOffsetY equ 8
+
+
+	
+
+
+* done = true
+* while !done
+* for x = 0 to width
+*  for y = 0 to height
+*   load buffer x,y
+*   cmp screen x,y (plus offsets)
+*   if (screen = buffer) continue
+*   done = false
+*   get rand
+*   store at screen x,y
+* waitvbl
+
+
 
 HandleFinalScreen
 	lda #FinalText
@@ -299,7 +397,7 @@ _c12	asc "Gamebits/JuicedGS",00
 _c13	asc "KFest Organizers",00
 _c14	asc "      Presenters",00
 _c15	asc "      Attendees",00
-_c16	asc "        YOU!",00
+_c16	asc "   AND  YOU!",00
 _c17	asc "THANKS",00
 _c18          asc "      FOR",00
 _c19          asc "         WATCHING",00
@@ -1328,6 +1426,10 @@ HandleMedWait
 
 SetProdropGr
 	lda #$00
+	bra SetProdropChar
+SetProdropText
+	lda #" "
+SetProdropChar	
 	sta ]dropCharCompare
 	sta ]dropCharWrite
 	inc GDemoState
