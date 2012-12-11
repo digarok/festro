@@ -26,6 +26,14 @@ srcPtrL	equz $02
 srcPtrR	equz $04
 srcPtrD	equz $06
 
+	
+**************************************************
+* Demo Machine initialization
+**************************************************
+	jsr DetectIIgs
+	jsr InitState
+
+
 
 **************************************************
 * Main Demo Controller
@@ -40,6 +48,7 @@ DemoMain
 	bra :mainLoop
 
 DemoSubroutineTable
+* dw HandleKfestLogo
 
 	dw HandleProdrop
 	dw HandleScan01
@@ -52,9 +61,9 @@ DemoSubroutineTable
 	dw HandleScan03
 
 	dw HandleLoResInit
-	dw HandleFireRatio20
+	dw SetFireRatio20
 	dw HandleFireState1
-	dw HandleFireRatio90
+	dw SetFireRatio90
 	dw HandleFireState1
 	dw HandleFireStateK
 	dw HandleFireState1
@@ -69,10 +78,10 @@ DemoSubroutineTable
 	dw HandleFireState1
 	dw HandleFireStateYear
 	dw HandleFireState1
-	dw HandleFireRatio20
+	dw SetFireRatio20
 	dw HandleFireState1
 	dw HandleFireState1
-	dw HandleFireRatio01
+	dw SetFireRatio01
 	dw HandleFireState1
 	dw HandleKfestLogo
 	dw HandleMedWait
@@ -94,97 +103,6 @@ DemoSubroutineTable
 	dw HandleTextClear
 	dw HandleFinalScreen
 	dw P8Quit
-
-HandleAppleDraw
-:mainLoop
-	lda #1
-	sta _appleDone
-
-	lda #AppleLogo
-	sta srcPtr
-	lda #>AppleLogo
-	sta srcPtr+1
-
-	
-	lda #_appleOffsetY
-	sta _currentY
-
-:lineStart	asl 
-	tax
-	lda LoLineTable,x
-	sta dstPtr
-	lda LoLineTable+1,x
-	sta dstPtr+1
-
-	lda dstPtr	; add offset
-	clc
-	adc #_appleOffsetX
-	sta dstPtr
-	bcc :noCarry2
-	inc dstPtr+1
-:noCarry2
-		; src = buffer
-		; dst = screen
-
-
-	ldy #$00
-:drawLoop	lda (srcPtr),y
-*	bra :noMagic
-	cmp (dstPtr),y
-	beq :nextChar
-	stz _appleDone
-	jsr GetRand
-	cmp #$00	; occasional black pixel @todo
-	beq :noMagic
-	cmp #$F8	; had to add in a way to keep it from
-	blt :noMagic	; getting stuck so now it occasionally puts
-	lda (srcPtr),y	; the right pixel even when it wasn't 
-:noMagic	sta (dstPtr),y              ; found by getrand.  (because it's only pseudorandom)
-
-:nextChar	iny
-	cpy #AppleLogoWidth
-	bne :drawLoop
-:nextLine     lda srcPtr
-	clc
-	adc #AppleLogoWidth
-	sta srcPtr
-	bcc :noCarry1
-	inc srcPtr+1
-:noCarry1	
-	inc _currentY	; handle screen offset
-	lda _currentY
-	cmp #AppleLogoHeight+_appleOffsetY
-	bne :lineStart
-		
-:donePass	lda #$5
-	jsr SimplerWait
-	lda _appleDone
-	beq :mainLoop
-	lda #$33
-	jsr SimplerWait
-	inc GDemoState
-	jmp DemoMain
-	
-_currentY	db #$00
-_appleDone	db #$00
-_appleOffsetX equ 10
-_appleOffsetY equ 8
-
-
-	
-
-
-* done = true
-* while !done
-* for x = 0 to width
-*  for y = 0 to height
-*   load buffer x,y
-*   cmp screen x,y (plus offsets)
-*   if (screen = buffer) continue
-*   done = false
-*   get rand
-*   store at screen x,y
-* waitvbl
 
 
 
@@ -570,8 +488,11 @@ _defaultStarSpeed equ #$10
 	inc
 	cmp #8*4+#_defaultStarSpeed 
 	bne :slowDown
-	lda #$40
-	jsr SimplerWait
+	jsr SErandStatic
+	jsr SErandStatic
+	jsr SErandStatic
+	jsr SErandStatic
+
 
 
 * speed up again
@@ -766,35 +687,34 @@ ScrollLeft
 HandleLoResInit
 	sta LORES
 	jsr ClearLoRes
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
+
 HandleTextClear
 	sta TXTSET
 	jsr ClearText
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 
-HandleFireRatio01
+SetFireRatio01
 	lda #$01
 	sta GFireRatio
-	inc GDemoState
-	jmp DemoMain
-HandleFireRatio20
+	jmp DemoNext
+
+SetFireRatio20
 	lda #$20
 	sta GFireRatio
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 
-HandleFireRatio90
+SetFireRatio90
 	lda #$90
 	sta GFireRatio
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 
-HandleFireRatioC0
+SetFireRatioC0
 	lda #$C0
 	sta GFireRatio
-	inc GDemoState
+	jmp DemoNext
+
+DemoNext	inc GDemoState
 	jmp DemoMain
 
 HandleFireState1
@@ -861,7 +781,9 @@ FirePass	pha
 	jsr MakeHeat
 	jsr Scroll8
 	jsr Average8
+	jsr VBlank
 	jsr DrawBufFullScreen
+	jsr RandPop
 	plx
 	pla
 	rts
@@ -873,8 +795,15 @@ HandleFireStateYear
 	jsr FirePass3	; preserves A,X,Y
 	dec
 	bne :loop
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
+
+
+
+RandPop	jsr GetRandHot
+	bne :noPop
+	sta SPEAKER
+:noPop	rts
+
 
 * A = count X=lowbyte  Y=hibyte
 FirePass2	
@@ -883,6 +812,7 @@ FirePass2
 	phy
 	jsr MakeHeat
 	jsr Scroll8
+	jsr RandPop
 	ply
 	plx
 	jsr DrawSpriteMask
@@ -898,6 +828,7 @@ FirePass3
 	phy
 	jsr MakeHeat
 	jsr Scroll8
+	jsr RandPop
 	ply
 	plx
 	jsr DrawSpriteMaskBig
@@ -1146,6 +1077,17 @@ DrawStringXYWait
 	beq :done
 	sta (dstPtr),y
 	iny 
+	pha
+	phx
+	phy
+	lda #6
+	ldx #1
+	ldy #24
+	jsr tone
+	ply
+	plx
+	pla
+
 	lda _drawWait
 	jsr SimplerWait
 	bra :loop
@@ -1444,6 +1386,7 @@ HandleProdrop
 	jmp :prodropUpdate
 
 :prodropScan
+	jsr soundDownReset
 	lda #0	; start scan at line 0 every time
 	sta _prodropScanLine
 
@@ -1517,18 +1460,25 @@ HandleProdrop
 	jmp DemoMain
 	rts	;; @todo: add rts support to jmp table stuff?
 
-]prodropAnimDone
+]prodropAnimDone	;; might rework this.. is there any point in returning to 
+		;; the main demo loop between scans and such?  
 	lda #0
 	sta _prodropState	; uhg..reset state before exit so can be called again
 	inc GDemoState	; ugh again... not great..  using globals
 	jmp DemoMain
 
+
+* This is the animation loop
 :prodropUpdate
 	lda #0	; finished = false
-	sta _prodropAnimDone
-
+	stz _prodropAnimDone
 
 :prodropUpdateLoop
+	lda _prodropSound
+	bne :noSound
+	lda #4
+	jsr soundDown ;SErandBlip
+:noSound	stz _prodropSound ; if this flag gets set we call our sound routine
 	lda #16
 	tax
 	tay
@@ -1580,6 +1530,7 @@ HandleProdrop
 ]dropCharWrite equ *-1	; we set this differently for GRaphics mode
 	sta (dstPtr),y
 * breath... holy crap all that just to draw a space at X,Y
+* now we draw the character one line down
 	ldy #2
 	lda (srcPtr),y	; get Y value
 	inc	; move it down
@@ -1600,6 +1551,8 @@ HandleProdrop
 	bra ]nextAnimChar
 
 ]charFinished
+	lda #1		; SET SOUND ANY TIME NEW CHAR DROPS
+	sta _prodropSound
 	lda #0
 	sta (srcPtr)
 	bra ]nextAnimChar
@@ -1609,6 +1562,7 @@ HandleProdrop
 	lda (srcPtr),y
 	and #%01111111	; clear high bit
 	sta (srcPtr),y
+
 
 
 ]nextAnimChar
@@ -1643,6 +1597,30 @@ HandleProdrop
 _prodropAnimDone	db 1	; any time we find a character it flips this false
 _prodropScanLine	db 0	; starts scanning at line 0
 _prodropState	db 0	; starts with 0, which is scan mode
+_prodropSound db 0	; determine if we should call sound engine
+
+soundDownReset stz _sndFreq
+	stz _sndFreq+1
+	rts
+
+_sndFreq	dw 0
+_sndInt	db 0
+soundDown	pha	;interval
+	ldy _sndFreq
+	ldx _sndFreq+1
+	lda #$8
+	jsr tone
+	pla
+	cmp _sndInt
+	beq :intMatch
+	inc _sndInt
+	rts
+:intMatch	stz _sndInt
+	inc _sndFreq
+	bcs :inc
+	rts
+:inc	inc _sndFreq+1
+	rts
 
 
 
@@ -1751,6 +1729,117 @@ _swipeMaxWidth	db #0	; set # characters per line in the source buffer
 _swipeXOffset	db #$0	; screen offset for placement
 _swipeYOffset	db #$0	; screen offset for placement
 
+
+
+HandleAppleDraw
+:mainLoop
+	lda #1
+	sta _appleDone
+
+	lda #AppleLogo
+	sta srcPtr
+	lda #>AppleLogo
+	sta srcPtr+1
+
+	
+	lda #_appleOffsetY
+	sta _currentY
+
+:lineStart	asl 
+	tax
+	lda LoLineTable,x
+	sta dstPtr
+	lda LoLineTable+1,x
+	sta dstPtr+1
+
+	lda dstPtr	; add offset
+	clc
+	adc #_appleOffsetX
+	sta dstPtr
+	bcc :noCarry2
+	inc dstPtr+1
+:noCarry2
+		; src = buffer
+		; dst = screen
+
+
+	ldy #$00
+:drawLoop	lda (srcPtr),y
+*	bra :noMagic
+	cmp (dstPtr),y
+	beq :nextChar
+	stz _appleDone
+	jsr GetRand
+	cmp #$10	; occasional black pixel @todo
+	bge :noBlack
+	lda #0
+	bra :noMagic
+:noBlack	cmp #$FA	; had to add in a way to keep it from
+	blt :noMagic	; getting stuck so now it occasionally puts
+	lda (srcPtr),y	; the right pixel even when it wasn't 
+:noMagic	sta (dstPtr),y              ; found by getrand.  (because it's only pseudorandom)
+
+:nextChar	iny
+	cpy #AppleLogoWidth
+	bne :drawLoop
+:nextLine     lda srcPtr
+	clc
+	adc #AppleLogoWidth
+	sta srcPtr
+	bcc :noCarry1
+	inc srcPtr+1
+:noCarry1	
+	inc _currentY	; handle screen offset
+	lda _currentY
+	cmp #AppleLogoHeight+_appleOffsetY
+	bne :lineStart
+		
+:donePass	lda #$5
+	jsr SimplerWait
+	lda _appleDone
+	beq :mainLoop
+	lda #$33
+	jsr SimplerWait
+	inc GDemoState
+	jmp DemoMain
+	
+_currentY	db #$00
+_appleDone	db #$00
+_appleOffsetX equ 10
+_appleOffsetY equ 8
+
+
+	
+
+
+* done = true
+* while !done
+* for x = 0 to width
+*  for y = 0 to height
+*   load buffer x,y
+*   cmp screen x,y (plus offsets)
+*   if (screen = buffer) continue
+*   done = false
+*   get rand
+*   store at screen x,y
+* waitvbl
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 *********************
 * DEMO ONLY!
 * x=10,y=10
@@ -1856,6 +1945,10 @@ KeyHandler
 	sta STROBE
 	sta GKeyEvent
 	cmp #"q"
+	beq P8Quit
+	cmp #"Q"
+	beq P8Quit
+	cmp #K_ESC
 	beq P8Quit
 ]noKey	rts
 
@@ -2392,18 +2485,61 @@ _multiplyResult dw 0000
 
 
 **************************************************
-* Apple Standard Memory Locations
-* @todo: finalize as include?
+* See if we're running on a IIgs
+* From Apple II Technote: 
+*   Miscellaneous #7
+*   Apple II Family Identification
 **************************************************
-CLRLORES	EQU $F832
-LORES	EQU $C050
-TXTSET	EQU $C051
-MIXCLR	EQU $C052
-MIXSET	EQU $C053
-KEY	EQU $C000
-STROBE	EQU $C010
-SPEAKER	EQU $C030
-VBL	EQU $C02E
+DetectIIgs	
+	sec        ;Set carry bit (flag)
+	jsr $FE1F    ;Call to the monitor
+	bcs :oldmachine    ;If carry is still set, then old machine
+*	bcc :newmachine    ;If carry is clear, then new machine
+:newmachine   lda #1
+	sta GMachineIIgs
+	rts
+:oldmachine	stz GMachineIIgs
+	rts
+
+InitState
+	lda GMachineIIgs
+	beq :IIe
+	rts
+:IIe	rts	
+
+VBlank	lda _vblType
+	bne :IIc
+	jsr VBlankNormal
+	rts
+:IIc	rts
+
+_vblType	db 0	; 0 - normal, 1 - IIc
+
+**************************************************
+* Wait for vertical blanking interval - IIe/IIgs
+**************************************************
+VBlankNormal
+:loop1	lda RDVBLBAR
+	bpl :loop1 ; not VBL
+:loop	lda $c019
+	bmi :loop ;wait for beginning of VBL interval
+	rts
+
+
+
+
+**************************************************
+* Keyboard equates
+**************************************************
+K_CTRL	equ $60
+K_ESC	equ $9b
+K_DELETE	equ $7f
+K_SHIFT	equ $20
+
+K_CTRL_S	equ "s"-K_CTRL
+K_CTRL_P	equ "n"-K_CTRL
+
+
 
 **************************************************
 * Lores/Text lines
@@ -2455,6 +2591,7 @@ DSEG2	ds 4096	; Secondary (overflow region?)
 
 GKeyEvent	db 0	; keypress - allow subroutines to access
 GDemoState	db 0	; current demo state
+GMachineIIgs	db 0	; machine identification flag
 
 
 **************************************************
@@ -2465,5 +2602,7 @@ ProdropStateUpdate	equ #1	; Does one round of character updates, buffer&screen
 ProdropStateDone	equ #2	; Really just to let the callee(s) know it's all done
 
 	use festrodata	; all the sprites and such
+	use soundengine	; bleep, boops and clicks
+	use applerom		; softswitch locations, etc
 	lst on
 	sav /code/festro.sys
