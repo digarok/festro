@@ -31,15 +31,14 @@ srcPtrD	equz $06
 * Demo Machine initialization
 **************************************************
 	jsr DetectIIgs
-	jsr InitState
+	jsr InitState	;@todo: IIc vblank code
 
 
 **************************************************
 * Main Demo Controller
 **************************************************
 DemoMain
-:mainLoop
-	jsr KeyHandler
+:mainLoop	jsr KeyHandler
 	lda GDemoState
 	asl
 	tax
@@ -103,85 +102,10 @@ DemoSubroutineTable
 
 
 
-HandleFinalScreen
-	lda #FinalText
-	sta srcPtr
-	lda #>FinalText
-	sta srcPtr+1
 
-	lda #0
-:lineLoop	pha
-	asl
-	tax
-	lda LoLineTable,x
-	sta dstPtr
-	lda LoLineTable+1,x
-	sta dstPtr+1
-	ldy #0
-:copyLoop	lda (srcPtr),y
-	beq :nextLine
-	cmp #$ff
-	beq :done
-	sta (dstPtr),y
-	iny
-	lda #2
-	jsr SimplerWait
-	bra :copyLoop
-:nextLine	iny
-	tya
-	clc
-	adc srcPtr
-	sta srcPtr
-	bcc :noCarry
-	inc srcPtr+1
-:noCarry	pla
-	inc
-	bra :lineLoop
-
-:done	pla	;woops
-
-* FALLTHROUGH to menu
-
-	stz DSEG0
-:noKey
-	lda #$6
-	jsr SimplerWait
-	lda DSEG0
-	beq :blink
-	dec DSEG0
-	lda #"?"
-	bra :store
-:blink	inc DSEG0
-	lda #" "
-:store	sta Lo21+23
-	bra :chkKey
-:chkKey	lda KEY 
-	cmp #$80
-	blt :noKey
-	sta STROBE
-	cmp #"f"
-	beq :goFire
-	cmp #"F"
-	beq :goFire
-	inc GDemoState
-	jmp DemoMain
-:goFire	bra HiddenFire
-
-HiddenFire 
-              lda #$90
-	sta GFireRatio
-	sta LORES
-	jsr ClearLoRes
-:noKey	jsr FirePass
-	lda KEY
-	cmp #$80
-	blt :noKey
-	sta STROBE
-              sta TXTSET
-              jsr ClearText
-	jmp DemoMain
-	
-
+**************************************************
+* Demo-Part Controllers
+**************************************************
 HandleGreetScroll
 	lda #_cwoz
 	sta srcPtr
@@ -231,10 +155,7 @@ HandleGreetScroll
 	beq :done
 	bra :loop
 
-:done	inc GDemoState
-	jmp DemoMain
-
-
+:done	jmp DemoNext
 
 _creditScrollTick db #$00
 _creditScrollCounter db #$00
@@ -248,6 +169,7 @@ HandleMapScroll
 	jsr SimplerWait
 	ldx #WorldMapWidth-40
 :scrollLoop	phx
+	jsr VBlankSafe	
 	jsr DrawMapOffset
 	lda #$20
 	jsr SimplerWait
@@ -256,12 +178,15 @@ HandleMapScroll
 	bne :scrollLoop
 	ldx #5
 :blinkenLoop	phx
-	lda #$13
-	jsr SimplerWait
+	lda #NoteG0
+	ldx #$10
+	jsr SEplayNote
+	jsr VBlank
 	lda #" "
 	sta Lo07+16
-	lda #$20
+	lda #$10
 	jsr SimplerWait
+	jsr VBlank
 	lda #"*"
 	sta Lo07+16
 	plx
@@ -297,67 +222,9 @@ HandleMapScroll
 	bne :flashenLoop
 	lda #$30
 	jsr SimplerWait
+	jmp DemoNext
 
-	inc GDemoState
-	jmp DemoMain
 
-DrawMapOffset
-	ldy #0
-
-:drawLoop	lda WorldMap,x
-	sta Lo01,y
-	lda WorldMapWidth*1+WorldMap,x
-	sta Lo02,y
-	lda WorldMapWidth*2+WorldMap,x
-	sta Lo03,y
-	lda WorldMapWidth*3+WorldMap,x
-	sta Lo04,y
-	lda WorldMapWidth*4+WorldMap,x
-	sta Lo05,y
-	lda WorldMapWidth*5+WorldMap,x
-	sta Lo06,y
-	lda WorldMapWidth*6+WorldMap,x
-	sta Lo07,y
-	lda WorldMapWidth*7+WorldMap,x
-	sta Lo08,y
-	lda WorldMapWidth*8+WorldMap,x
-	sta Lo09,y
-	lda WorldMapWidth*9+WorldMap,x
-	sta Lo10,y
-	lda WorldMapWidth*10+WorldMap,x
-	sta Lo11,y
-	lda WorldMapWidth*11+WorldMap,x
-	sta Lo12,y
-	lda WorldMapWidth*12+WorldMap,x
-	sta Lo13,y
-	lda WorldMapWidth*13+WorldMap,x
-	sta Lo14,y
-	lda WorldMapWidth*14+WorldMap,x
-	sta Lo15,y
-	lda WorldMapWidth*15+WorldMap,x
-	sta Lo16,y
-	lda WorldMapWidth*16+WorldMap,x
-	sta Lo17,y
-	lda WorldMapWidth*17+WorldMap,x
-	sta Lo18,y
-	lda WorldMapWidth*18+WorldMap,x
-	sta Lo19,y
-	lda WorldMapWidth*19+WorldMap,x
-	sta Lo20,y
-	lda WorldMapWidth*20+WorldMap,x
-	sta Lo21,y
-	lda WorldMapWidth*21+WorldMap,x
-	sta Lo22,y
-	lda WorldMapWidth*22+WorldMap,x
-	sta Lo23,y
-	lda WorldMapWidth*23+WorldMap,x
-	sta Lo24,y
-	inx
-	iny
-	cpy #40
-	beq :done
-	jmp :drawLoop
-:done	rts 
 
 HandleStarScroll
 _defaultStarSpeed equ #$10
@@ -421,7 +288,7 @@ _defaultStarSpeed equ #$10
 	cmp #_defaultStarSpeed
 	bne :speedUpAgain ;) 
 
-	ldx #220
+	ldx #200
 	lda #_defaultStarSpeed
 	ldy #1	;SONG
 	jsr StarScrollAuto
@@ -440,12 +307,12 @@ _defaultStarSpeed equ #$10
 	pha
 	phx
 	phy
-	ldx #$30
+	ldx #_defaultStarSpeed
 	jsr PlaySong01Note
 	ply
 	plx
 	pla
-	;jsr SimplerWait
+
 	plx
 	dex
 	bne :loop2
@@ -453,19 +320,24 @@ _defaultStarSpeed equ #$10
 	lda #_defaultStarSpeed
 :slowDownAgain	ldx #1
 	pha
-	ldy #1
-	jsr StarScrollAuto
-	pla 
-	jsr SimplerWait	; extra wait uhg
+	pha
+	jsr VBlank
+	jsr ScrollLeft
+	jsr GenStarRight
+
+	pla	; play slower notes
+	asl
+	tax
+	jsr PlaySong01Note
+	pla
 	inc
 	inc
 	cmp #$28 
 	bne :slowDownAgain	; i take my varibls srs
 	lda #$25
 	jsr SimplerWait
+	jmp DemoNext
 
-	inc GDemoState
-	jmp DemoMain
 _earthOffset	db #$00
 
 * A = wait , X = reps, y=snd
@@ -473,7 +345,6 @@ StarScrollAuto
 	sty _starScrollSound
 	sta _starScrollAutoWait
 :loop	phx
-	jsr VBlank
 	jsr ScrollLeft
 	jsr GenStarRight
 	ldy _starScrollSound
@@ -492,47 +363,25 @@ _starScrollAutoWait db 0
 _starScrollSound db 0
 
 
-
 HandleLoResInit
+	jsr VBlank
 	sta LORES
 	jsr ClearLoRes
 	jmp DemoNext
 
 HandleTextClear
-	sta TXTSET
+	jsr VBlank
 	jsr ClearText
+	sta TXTSET
 	jmp DemoNext
 
-SetFireRatio01
-	lda #$01
-	sta GFireRatio
-	jmp DemoNext
-
-SetFireRatio20
-	lda #$20
-	sta GFireRatio
-	jmp DemoNext
-
-SetFireRatio90
-	lda #$90
-	sta GFireRatio
-	jmp DemoNext
-
-SetFireRatioC0
-	lda #$C0
-	sta GFireRatio
-	jmp DemoNext
-
-DemoNext	inc GDemoState
-	jmp DemoMain
 
 HandleFireState1
 	ldx #20
 :loop	jsr FirePass
 	dex
 	bne :loop
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 
 HandleFireStateK
 	lda #$20
@@ -541,8 +390,7 @@ HandleFireStateK
 	jsr FirePass2	; preserves A,X,Y
 	dec
 	bne :loop
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 
 HandleFireStateF
 	lda #$20
@@ -551,8 +399,7 @@ HandleFireStateF
 	jsr FirePass2	; preserves A,X,Y
 	dec
 	bne :loop
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 
 HandleFireStateE
 	lda #$20
@@ -561,8 +408,7 @@ HandleFireStateE
 	jsr FirePass2	; preserves A,X,Y
 	dec
 	bne :loop
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 
 
 HandleFireStateS
@@ -572,8 +418,7 @@ HandleFireStateS
 	jsr FirePass2	; preserves A,X,Y
 	dec
 	bne :loop
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 
 HandleFireStateT
 	lda #$20
@@ -582,8 +427,7 @@ HandleFireStateT
 	jsr FirePass2	; preserves A,X,Y
 	dec
 	bne :loop
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 
 FirePass	pha
 	phx
@@ -606,8 +450,6 @@ HandleFireStateYear
 	bne :loop
 	jmp DemoNext
 
-
-
 RandPop	jsr GetRandHot
 	bne :noPop
 	sta SPEAKER
@@ -626,6 +468,7 @@ FirePass2
 	plx
 	jsr DrawSpriteMask
 	jsr Average8
+	jsr VBlank
 	jsr DrawBufFullScreen
 	pla
 	rts
@@ -646,48 +489,6 @@ FirePass3
 	pla
 	rts
 
-**************************************************
-* Color look up table.
-* Fire values 0 through F get translated to these
-**************************************************
-	ds \
-*ColorIdx	ds 16	; we copy the palettes below to here
-ColorIdx		; fake it for now
-	; bottom / top color
-ColorIdxColor	dfb #$00	; BLK / BLK
-	dfb #$22	; D.BLU / D.BLU
-	dfb #$55	; D.GRY / D.GRY
-	dfb #$55	; D.GRY / D.GRY
-	dfb #$12	; RED / D.BLUE
-	dfb #$18	; RED / BROWN
-	dfb #$98	; ORNG / BROWN
-	dfb #$99	; ORNG / ORNG
-	dfb #$b9	; PINK / ORNG
-	dfb #$Db	; YELO / PINK
-	dfb #$DD	; YELO / YELO
-	dfb #$DD	; YELO / YELO
-	dfb #$FD	; WHITE / YELO
-	dfb #$FF	; WHITE / WHITE
-	dfb #$FF	; WHITE / WHITE
-	dfb #$FF	; WHITE / WHITE
-
-ColorIdxMono
-	dfb #$00	; BLK / BLK
-	dfb #$11	; D.BLU / D.BLU
-	dfb #$08	; D.GRY / D.GRY
-	dfb #$42	; D.GRY / D.GRY
-	dfb #$43	; RED / D.BLUE
-	dfb #$53	; RED / BROWN
-	dfb #$55	; ORNG / BROWN
-	dfb #$65	; ORNG / ORNG
-	dfb #$67	; PINK / ORNG
-	dfb #$97	; YELO / PINK
-	dfb #$F7	; YELO / YELO
-	dfb #$FD	; YELO / YELO
-	dfb #$FF	; WHITE / YELO
-	dfb #$FF	; WHITE / WHITE
-	dfb #$FF	; WHITE / WHITE
-	dfb #$FF	; WHITE / WHITE
 
 FBufWidth	equ #40
 FBufHeight	equ #24
@@ -697,12 +498,9 @@ FBufLen	equ #FBufWidth*#FBufHeight
 FBufLastLine	equ #FBufWidth*#FBufHeight-#FBufWidth+FBUF
 
 
-**************************************************
-* Demo-Part Controllers
-**************************************************
 HandleKfestLogo
 	ldx #0
-:logoLoop	lda KfestLogo,x
+:loop	lda KfestLogo,x
 	sta Lo01,x
 	lda KfestLogoWidth*1+KfestLogo,x
 	sta Lo02,x
@@ -727,9 +525,7 @@ HandleKfestLogo
 	lda KfestLogoWidth*11+KfestLogo,x
 	sta Lo12,x
 	lda KfestLogoWidth*12+KfestLogo,x
-	bra :skip
-:loop	bra :logoLoop		; i hate hate hate this
-:skip	sta Lo13,x
+	sta Lo13,x
 	lda KfestLogoWidth*13+KfestLogo,x
 	sta Lo14,x
 	lda KfestLogoWidth*14+KfestLogo,x
@@ -754,10 +550,10 @@ HandleKfestLogo
 	sta Lo24,x
 	inx
 	cpx #KfestLogoWidth
-	bne :loop
+	beq :done
+	jmp :loop
+:done	jmp DemoNext
 	
-	inc GDemoState
-	jmp DemoMain
 
 HandleSplitSlide
 	ldy #$12
@@ -822,11 +618,126 @@ HandleSplitSlide
 	jsr SimplerWait
 	ply
 	jmp :passStart
+:done	jmp DemoNext
 
-:done	inc GDemoState
+
+DFace
+	jsr VBlank
+	sta LORES
+	jsr ClearLoRes
+	jsr VBlank
+
+	ldx #0
+	ldy #1	; offset by 1
+:loop	lda DLogo,x
+	sta Lo01,y
+	lda DLogoWidth*1+DLogo,x
+	sta Lo02,y
+	lda DLogoWidth*2+DLogo,x
+	sta Lo03,y
+	lda DLogoWidth*3+DLogo,x
+	sta Lo04,y
+	lda DLogoWidth*4+DLogo,x
+	sta Lo05,y
+	lda DLogoWidth*5+DLogo,x
+	sta Lo06,y
+	lda DLogoWidth*6+DLogo,x
+	sta Lo07,y
+	lda DLogoWidth*7+DLogo,x
+	sta Lo08,y
+	lda DLogoWidth*8+DLogo,x
+	sta Lo09,y
+	lda DLogoWidth*9+DLogo,x
+	sta Lo10,y
+	lda DLogoWidth*10+DLogo,x
+	sta Lo11,y
+	lda DLogoWidth*11+DLogo,x
+	sta Lo12,y
+	lda DLogoWidth*12+DLogo,x
+	sta Lo13,y
+	lda DLogoWidth*13+DLogo,x
+	sta Lo14,y
+	lda DLogoWidth*14+DLogo,x
+	sta Lo15,y
+	lda DLogoWidth*15+DLogo,x
+	sta Lo16,y
+	lda DLogoWidth*16+DLogo,x
+	sta Lo17,y
+	lda DLogoWidth*17+DLogo,x
+	sta Lo18,y
+	lda DLogoWidth*18+DLogo,x
+	sta Lo19,y
+	lda DLogoWidth*19+DLogo,x
+	sta Lo20,y
+	lda DLogoWidth*20+DLogo,x
+	sta Lo21,y
+	lda DLogoWidth*21+DLogo,x
+	sta Lo22,y
+	lda DLogoWidth*22+DLogo,x
+	sta Lo23,y
+	iny
+	inx
+	cpx #DLogoWidth+1
+	beq :done
+	jmp :loop
+:done	
+:noKey	inc Lo01
+	inc Lo02
+	inc Lo03
+	inc Lo04
+	inc Lo05
+	inc Lo06
+	inc Lo07
+	inc Lo08
+	inc Lo09
+	inc Lo10
+	inc Lo11
+	inc Lo12
+	inc Lo13
+	inc Lo14
+	inc Lo15
+	inc Lo16
+	inc Lo17
+	inc Lo18
+	inc Lo19
+	inc Lo20
+	inc Lo21
+	inc Lo22
+	inc Lo23
+	inc Lo24
+	inc Lo01+39
+	inc Lo02+39
+	inc Lo03+39
+	inc Lo04+39
+	inc Lo05+39
+	inc Lo06+39
+	inc Lo07+39
+	inc Lo08+39
+	inc Lo09+39
+	inc Lo10+39
+	inc Lo11+39
+	inc Lo12+39
+	inc Lo13+39
+	inc Lo14+39
+	inc Lo15+39
+	inc Lo16+39
+	inc Lo17+39
+	inc Lo18+39
+	inc Lo19+39
+	inc Lo20+39
+	inc Lo21+39
+	inc Lo22+39
+	inc Lo23+39
+	inc Lo24+39
+
+	lda KEY
+	cmp #$80
+	bge :key
+	jmp :noKey
+:key	sta STROBE
+              sta TXTSET
+              jsr ClearText
 	jmp DemoMain
-
-
 
 * set zero page ptr 00 to source of null terminated string
 * x = x
@@ -889,10 +800,9 @@ DrawStringXYWait
 	pha
 	phx
 	phy
-	lda #6
-	ldx #1
-	ldy #24
-	jsr tone
+	lda #NoteD1
+	ldx #5
+	jsr SENoteAX
 	ply
 	plx
 	pla
@@ -952,9 +862,7 @@ HandleScan01
 	pla
 	dec
 	bne :flashenLoop
-
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 
 	
 HandleScan02
@@ -1032,9 +940,7 @@ HandleScan02
 
 	lda #$30	
 	jsr SimplerWait
-
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 
 HandleScan03
 	lda #40
@@ -1092,9 +998,8 @@ HandleScan03
 	pla
 	dec
 	bne :flashenLoop
+	jmp DemoNext
 
-	inc GDemoState
-	jmp DemoMain
 
 DrawBoxAnim
 _boxX	equ #13
@@ -1154,27 +1059,20 @@ HandleShortWait
 	tax
 	tay
 	jsr SimpleWait	
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 
 HandleMedWait
 	lda #$50
 	tax
 	tay
 	jsr SimpleWait	
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 
 
 
 ** Dropper routine - not specific to ProDrop per se
 ** - uses DSEG0
 HandleProdrop
-	lda _prodropState
-	beq :prodropScan
-	jmp :prodropUpdate
-
-:prodropScan
 	jsr soundDownReset
 	lda #0	; start scan at line 0 every time
 	sta _prodropScanLine
@@ -1244,17 +1142,7 @@ HandleProdrop
 	lda #$FF
 	sta (dstPtr)	; set terminator byte
 
-	inc _prodropState
 
-	jmp DemoMain
-	rts	;; @todo: add rts support to jmp table stuff?
-
-]prodropAnimDone	;; might rework this.. is there any point in returning to 
-		;; the main demo loop between scans and such?  
-	lda #0
-	sta _prodropState	; uhg..reset state before exit so can be called again
-	inc GDemoState	; ugh again... not great..  using globals
-	jmp DemoMain
 
 
 * This is the animation loop
@@ -1266,7 +1154,7 @@ HandleProdrop
 	lda _prodropSound
 	bne :noSound
 	lda #4
-	jsr soundDown ;SErandBlip
+	jsr soundDown 
 :noSound	stz _prodropSound ; if this flag gets set we call our sound routine
 	lda #16
 	tax
@@ -1276,9 +1164,10 @@ HandleProdrop
 
 
 	lda _prodropAnimDone
-	bne ]prodropAnimDone
+	beq :notDone
+	jmp ]prodropAnimDone
 
-	lda #1	; set finished = true before we start our char
+:notDone	lda #1	; set finished = true before we start our char
 	sta _prodropAnimDone	; loop, any time we find active char set false
 
 	lda #DSEG0	; initialize source pointer (our character buffer)
@@ -1353,8 +1242,6 @@ HandleProdrop
 	and #%01111111	; clear high bit
 	sta (srcPtr),y
 
-
-
 ]nextAnimChar
 	lda srcPtr
 	clc
@@ -1363,6 +1250,9 @@ HandleProdrop
 	bcc :prodropAnimLoop
 	inc srcPtr+1	; next page
 	bra :prodropAnimLoop
+
+]prodropAnimDone
+	jmp DemoNext
 
 * done = true
 * foreach DSEG0-blahblah
@@ -1389,17 +1279,16 @@ _prodropScanLine	db 0	; starts scanning at line 0
 _prodropState	db 0	; starts with 0, which is scan mode
 _prodropSound db 0	; determine if we should call sound engine
 
-soundDownReset stz _sndFreq
-	stz _sndFreq+1
+soundDownReset lda #10
+	sta _sndFreq
 	rts
 
-_sndFreq	dw 0
+_sndFreq	db 10
 _sndInt	db 0
 soundDown	pha	;interval
-	ldy _sndFreq
-	ldx _sndFreq+1
-	lda #$8
-	jsr tone
+	ldx #6
+	lda _sndFreq
+	jsr SENoteAX
 	pla
 	cmp _sndInt
 	beq :intMatch
@@ -1407,9 +1296,6 @@ soundDown	pha	;interval
 	rts
 :intMatch	stz _sndInt
 	inc _sndFreq
-	bcs :inc
-	rts
-:inc	inc _sndFreq+1
 	rts
 
 
@@ -1495,8 +1381,7 @@ HandleSwipeWrite
 	jsr SimpleWait
 	lda _swipeLinesDone
 	beq :swipeLoop
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 * for (line =0 ; line < active	; line ++ ) {
 *  sourceptr = bufferwidth * line
 *  destPtr = ^lores[line+yoffset] + xoffset
@@ -1520,6 +1405,17 @@ _swipeXOffset	db #$0	; screen offset for placement
 _swipeYOffset	db #$0	; screen offset for placement
 
 
+* done = true
+* while !done
+* for x = 0 to width
+*  for y = 0 to height
+*   load buffer x,y
+*   cmp screen x,y (plus offsets)
+*   if (screen = buffer) continue
+*   done = false
+*   get rand
+*   store at screen x,y
+* waitvbl
 
 HandleAppleDraw
 :mainLoop
@@ -1530,11 +1426,9 @@ HandleAppleDraw
 	sta srcPtr
 	lda #>AppleLogo
 	sta srcPtr+1
-
 	
 	lda #_appleOffsetY
 	sta _currentY
-
 :lineStart	asl 
 	tax
 	lda LoLineTable,x
@@ -1593,29 +1487,104 @@ HandleAppleDraw
 	beq :mainLoop
 	lda #$33
 	jsr SimplerWait
-	inc GDemoState
-	jmp DemoMain
-	
+	jmp DemoNext
+
 _currentY	db #$00
 _appleDone	db #$00
 _appleOffsetX equ 10
-_appleOffsetY equ 8
+_appleOffsetY equ 6
 
 
+
+
+**************************************************
+* Draws final info text and waits / secret menu
+**************************************************
+HandleFinalScreen
+	lda #FinalText
+	sta srcPtr
+	lda #>FinalText
+	sta srcPtr+1
+
+	lda #0
+:lineLoop	pha
+	asl
+	tax
+	lda LoLineTable,x
+	sta dstPtr
+	lda LoLineTable+1,x
+	sta dstPtr+1
+	ldy #0
+:copyLoop	lda (srcPtr),y
+	beq :nextLine
+	cmp #$ff
+	beq :done
+	sta (dstPtr),y
+	iny
+	lda #2
+	jsr SimplerWait
+	bra :copyLoop
+:nextLine	iny
+	tya
+	clc
+	adc srcPtr
+	sta srcPtr
+	bcc :noCarry
+	inc srcPtr+1
+:noCarry	pla
+	inc
+	bra :lineLoop
+
+:done	pla	;woops
+
+* FALLTHROUGH to final menu
+
+	stz DSEG0	; borrow a byte for cursor blink
+:noKey
+	lda #$6
+	jsr SimplerWait
+	jsr VBlank
+	lda DSEG0
+	beq :blink
+	dec DSEG0
+	lda #"?"
+	bra :plot
+:blink	lda #" "
+	inc DSEG0
+:plot	ldx #23
+	ldy #20
+	jsr PlotXY
+:chkKey	lda KEY 
+	cmp #$80
+	blt :noKey
+	sta STROBE
+	cmp #"f"
+	beq :goFire
+	cmp #"F"
+	beq :goFire
+	cmp #"d"
+	beq :goD
+	cmp #"D"
+	beq :goD
+	jmp DemoNext	; any other key advances (quits)
+:goFire	bra HiddenFire
+:goD
+	jmp DFace
+HiddenFire    lda #$90
+	sta GFireRatio
+	sta LORES
+	jsr ClearLoRes
+:noKey	jsr FirePass
+	lda KEY
+	cmp #$80
+	blt :noKey
+	sta STROBE
+              sta TXTSET
+              jsr ClearText
+	jmp DemoMain
 	
 
 
-* done = true
-* while !done
-* for x = 0 to width
-*  for y = 0 to height
-*   load buffer x,y
-*   cmp screen x,y (plus offsets)
-*   if (screen = buffer) continue
-*   done = false
-*   get rand
-*   store at screen x,y
-* waitvbl
 
 
 
@@ -1624,13 +1593,84 @@ _appleOffsetY equ 8
 
 
 
+**************************************************
+* SUBROUTINES
+**************************************************
+SetFireRatio01
+	lda #$01
+	sta GFireRatio
+	jmp DemoNext
+SetFireRatio20
+	lda #$20
+	sta GFireRatio
+	jmp DemoNext
+SetFireRatio90
+	lda #$90
+	sta GFireRatio
+	jmp DemoNext
+
+DemoNext	inc GDemoState
+	jmp DemoMain
 
 
-
-
-
-
-
+**************************************************
+* Draw map at offset in X
+**************************************************
+DrawMapOffset	ldy #0
+:drawLoop	lda WorldMap,x
+	sta Lo01,y
+	lda WorldMapWidth*1+WorldMap,x
+	sta Lo02,y
+	lda WorldMapWidth*2+WorldMap,x
+	sta Lo03,y
+	lda WorldMapWidth*3+WorldMap,x
+	sta Lo04,y
+	lda WorldMapWidth*4+WorldMap,x
+	sta Lo05,y
+	lda WorldMapWidth*5+WorldMap,x
+	sta Lo06,y
+	lda WorldMapWidth*6+WorldMap,x
+	sta Lo07,y
+	lda WorldMapWidth*7+WorldMap,x
+	sta Lo08,y
+	lda WorldMapWidth*8+WorldMap,x
+	sta Lo09,y
+	lda WorldMapWidth*9+WorldMap,x
+	sta Lo10,y
+	lda WorldMapWidth*10+WorldMap,x
+	sta Lo11,y
+	lda WorldMapWidth*11+WorldMap,x
+	sta Lo12,y
+	lda WorldMapWidth*12+WorldMap,x
+	sta Lo13,y
+	lda WorldMapWidth*13+WorldMap,x
+	sta Lo14,y
+	lda WorldMapWidth*14+WorldMap,x
+	sta Lo15,y
+	lda WorldMapWidth*15+WorldMap,x
+	sta Lo16,y
+	lda WorldMapWidth*16+WorldMap,x
+	sta Lo17,y
+	lda WorldMapWidth*17+WorldMap,x
+	sta Lo18,y
+	lda WorldMapWidth*18+WorldMap,x
+	sta Lo19,y
+	lda WorldMapWidth*19+WorldMap,x
+	sta Lo20,y
+	lda WorldMapWidth*20+WorldMap,x
+	sta Lo21,y
+	lda WorldMapWidth*21+WorldMap,x
+	sta Lo22,y
+	lda WorldMapWidth*22+WorldMap,x
+	sta Lo23,y
+	lda WorldMapWidth*23+WorldMap,x
+	sta Lo24,y
+	inx
+	iny
+	cpy #40
+	beq :done
+	jmp :drawLoop
+:done	rts 
 
 
 *********************
@@ -1644,7 +1684,6 @@ _fbufOffsetY	equ #6
 * pass sprite ptr  - fixed width,height,x,y
 * 18x16
 **************
-
 _spriteWidth equ #18
 _spriteHeight equ #16
 _spriteDrawRow db 0
@@ -2472,8 +2511,7 @@ SetProdropText
 SetProdropChar	
 	sta ]dropCharCompare
 	sta ]dropCharWrite
-	inc GDemoState
-	jmp DemoMain
+	jmp DemoNext
 
 
 **************************************************
@@ -2526,6 +2564,15 @@ InitState
 	beq :IIe
 	rts
 :IIe	rts	
+
+VBlankSafe	pha
+	phx
+	phy
+	jsr VBlank
+	ply
+	plx
+	pla
+	rts
 
 VBlank	lda _vblType
 	bne :IIc
@@ -2596,6 +2643,48 @@ LoLineTable	da Lo01,Lo02,Lo03,Lo04,Lo05,Lo06
 	da Lo13,Lo14,Lo15,Lo16,Lo17,Lo18
 	da Lo19,Lo20,Lo21,Lo22,Lo23,Lo24
 
+**************************************************
+* Color look up table.
+* Fire values 0 through F get translated to these
+**************************************************
+	ds \
+*ColorIdx	ds 16	; we copy the palettes below to here
+ColorIdx		; fake it for now
+	; bottom / top color
+ColorIdxColor	dfb #$00	; BLK / BLK
+	dfb #$22	; D.BLU / D.BLU
+	dfb #$55	; D.GRY / D.GRY
+	dfb #$55	; D.GRY / D.GRY
+	dfb #$12	; RED / D.BLUE
+	dfb #$18	; RED / BROWN
+	dfb #$98	; ORNG / BROWN
+	dfb #$99	; ORNG / ORNG
+	dfb #$b9	; PINK / ORNG
+	dfb #$Db	; YELO / PINK
+	dfb #$DD	; YELO / YELO
+	dfb #$DD	; YELO / YELO
+	dfb #$FD	; WHITE / YELO
+	dfb #$FF	; WHITE / WHITE
+	dfb #$FF	; WHITE / WHITE
+	dfb #$FF	; WHITE / WHITE
+
+ColorIdxMono
+	dfb #$00	; BLK / BLK
+	dfb #$11	; D.BLU / D.BLU
+	dfb #$08	; D.GRY / D.GRY
+	dfb #$42	; D.GRY / D.GRY
+	dfb #$43	; RED / D.BLUE
+	dfb #$53	; RED / BROWN
+	dfb #$55	; ORNG / BROWN
+	dfb #$65	; ORNG / ORNG
+	dfb #$67	; PINK / ORNG
+	dfb #$97	; YELO / PINK
+	dfb #$F7	; YELO / YELO
+	dfb #$FD	; YELO / YELO
+	dfb #$FF	; WHITE / YELO
+	dfb #$FF	; WHITE / WHITE
+	dfb #$FF	; WHITE / WHITE
+	dfb #$FF	; WHITE / WHITE
 
 **************************************************
 * Data Segments
@@ -2603,7 +2692,7 @@ LoLineTable	da Lo01,Lo02,Lo03,Lo04,Lo05,Lo06
 	ds \
 DSEG0	ds 1024	; General 1K Data Store
 DSEG1	ds 1024	; Secondary (overflow region?)
-DSEG2	ds 4096	; Secondary (overflow region?)
+;DSEG2	ds 4096	; Secondary (overflow region?)
 
 **************************************************
 * Global Variables
@@ -2613,13 +2702,6 @@ GKeyEvent	db 0	; keypress - allow subroutines to access
 GDemoState	db 0	; current demo state
 GMachineIIgs	db 0	; machine identification flag
 
-
-**************************************************
-* State 'Enumerators'
-**************************************************
-ProdropStateScan	equ #0	; Scans all characters into our data structure
-ProdropStateUpdate	equ #1	; Does one round of character updates, buffer&screen
-ProdropStateDone	equ #2	; Really just to let the callee(s) know it's all done
 
 	use festrodata	; all the sprites and such
 	use soundengine	; bleep, boops and clicks

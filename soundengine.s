@@ -1,4 +1,42 @@
 **************************************************
+* COSMOS THEME
+**************************************************
+PlaySong01Note
+:start	lda Song01
+]song01Ptr	equ *-2
+	cmp #$02
+	bne :noLoop
+	lda #Song01
+	sta ]song01Ptr
+	lda #>Song01
+	sta ]song01Ptr+1
+	bra :start
+:noLoop
+	;ldx #$20	; x passed as wait value.. omg the hacks
+	jsr SENoteAX
+
+	lda ]frameCount
+	cmp #_frameRepeat
+	beq :nextNote
+	inc ]frameCount
+	rts
+:nextNote	stz ]frameCount
+	inc ]song01Ptr 
+	beq :inc
+	rts
+:inc	inc ]song01Ptr+1
+	rts
+]frameCount db 0
+_frameRepeat equ 2
+	
+Song01	hex 66,99,a3,66,99,a3,66,99,66,99,a3,66,99,a3,66,99
+	hex 72,99,a3,72,99,a3,72,99,72,99,a3,72,99,a3,72,99
+	hex 79,a3,b5,79,a3,b5,79,a3,79,a3,b5,79,a3,b5,79,a3
+	hex 6c,99,a3,6c,99,a3,6c,99,6c,99,a3,6c,99,a3,6c,5b
+	hex 66,99,a3,66,99,a3,66,99,66,99,a3,66,99,a3,66,99
+	hex 02 ;end
+
+**************************************************
 * play random short note 
 **************************************************
 SErandBlip
@@ -34,54 +72,17 @@ SEplayNote
 	jmp :loop
 :doneThat	rts
 
-
 _SECURRNOTE	db 0,0	; current note being played (frequency/duration)
 
-
-* COSMOS THEME
-
-PlaySong01Note
-:start	lda Song01
-]song01Ptr	equ *-2
-	cmp #$02
-	bne :noLoop
-	lda #Song01
-	sta ]song01Ptr
-	lda #>Song01
-	sta ]song01Ptr+1
-	bra :start
-:noLoop
-	;ldx #$20	; x passed as wait value.. omg the hacks
-	jsr SENoteAX
-
-	lda ]frameCount
-	cmp #_frameRepeat
-	beq :nextNote
-	inc ]frameCount
-	rts
-:nextNote	stz ]frameCount
-	inc ]song01Ptr 
-	beq :inc
-	rts
-:inc	inc ]song01Ptr+1
-	rts
-]frameCount db 0
-_frameRepeat equ 2
-	
-
-
-Song01	hex 66,99,a3,66,99,a3,66,99,66,99,a3,66,99,a3,66,99
-	hex 72,99,a3,72,99,a3,72,99,72,99,a3,72,99,a3,72,99
-	hex 79,a3,b5,79,a3,b5,79,a3,79,a3,b5,79,a3,b5,79,a3
-	hex 6c,99,a3,6c,99,a3,6c,99,6c,99,a3,6c,99,a3,6c,5b
-	hex 66,99,a3,66,99,a3,66,99,66,99,a3,66,99,a3,66,99
-	hex 02 ;end
-
+**************************************************
+* This is essentially the scale
+**************************************************
 _SE_tones	db NoteG0,NoteGsharp0,NoteA0,NoteBflat0,NoteB0
 	db NoteC1,NoteCsharp1,NoteD1,NoteDsharp1,NoteE1
 	db NoteF1,NoteFsharp1,NoteG1,NoteGsharp1,NoteA1
 	db NoteBflat1,NoteB1,NoteC2,NoteCsharp2,NoteD2
 	db NoteDsharp2,NoteE2,NoteF2
+
 NoteRest	equ $01	;\_ these are inaudible anyway
 NoteEnd	equ $02	;/
 NoteG0        equ $00       ; because it loops
@@ -133,44 +134,5 @@ SErandStaticBit
 :next	dey
 	bne :loop
 	rts
-
-
-
-
-*-------------------------------
-*
-*  T O N E
-*
-*  In: y-x = pitch lo-hi
-*      a = duration
-*
-*-------------------------------
-tone
- sty :pitch
- stx :pitch+1
-
-:outloop bit SPEAKER
-
- ldx #0
-:midloop ldy #0
-
-:inloop iny
- cpy :pitch
- bcc :inloop
-
- inx
- cpx :pitch+1
- bcc :midloop
-
- sec
- sbc #1
- bne :outloop
-
- rts
-
-:pitch ds 2
-
-
-	
 
 
