@@ -34,7 +34,6 @@ srcPtrD	equz $06
 	jsr InitState
 
 
-
 **************************************************
 * Main Demo Controller
 **************************************************
@@ -48,8 +47,6 @@ DemoMain
 	bra :mainLoop
 
 DemoSubroutineTable
-* dw HandleKfestLogo
-
 	dw HandleProdrop
 	dw HandleScan01
 	dw HandleTextClear
@@ -156,7 +153,7 @@ HandleFinalScreen
 	bra :store
 :blink	inc DSEG0
 	lda #" "
-:store	sta Lo19+23
+:store	sta Lo21+23
 	bra :chkKey
 :chkKey	lda KEY 
 	cmp #$80
@@ -239,94 +236,10 @@ HandleGreetScroll
 
 
 
-ScrollRightUp 
-	ldx #22	, x start
-
-:loop	lda Lo02,x
-	sta Lo01,x
-	lda Lo03,x
-	sta Lo02,x
-	lda Lo04,x
-	sta Lo03,x
-	lda Lo05,x
-	sta Lo04,x
-	lda Lo06,x
-	sta Lo05,x
-	lda Lo07,x
-	sta Lo06,x
-	lda Lo08,x
-	sta Lo07,x
-	lda Lo09,x
-	sta Lo08,x
-	lda Lo10,x
-	sta Lo09,x
-	lda Lo11,x
-	sta Lo10,x
-	lda Lo12,x
-	sta Lo11,x
-	lda Lo13,x
-	sta Lo12,x
-	lda Lo14,x
-	sta Lo13,x
-	lda Lo15,x
-	sta Lo14,x
-	lda Lo16,x
-	sta Lo15,x
-	lda Lo17,x
-	sta Lo16,x
-	lda Lo18,x
-	sta Lo17,x
-	lda Lo19,x
-	sta Lo18,x
-	lda Lo20,x
-	sta Lo19,x
-	lda Lo21,x
-	sta Lo20,x
-	lda Lo22,x
-	sta Lo21,x
-	lda Lo23,x
-	sta Lo22,x
-	lda Lo24,x
-	sta Lo23,x
-	lda #" "
-	sta Lo24,x
-	inx 
-	cpx #40
-	beq :done
-	jmp :loop
-:done	rts
-
 _creditScrollTick db #$00
 _creditScrollCounter db #$00
 _creditStringIdx db #$00
 
-_cwoz	asc "Woz",00
-_c2	asc "Brutal Deluxe",00
-_c3	asc "Belgo",00
-_c4	asc "BLuRry",00
-_c5	asc "krUe",00
-_c6	asc "Ninjaforce",00
-_c7	asc "FTA",00
-_c8	asc "RedHot ;)",00
-_c9	asc "ECC",00
-_c10	asc "antoine",00
-_c11	asc "MJM",00
-_c12	asc "Gamebits/JuicedGS",00
-_c13	asc "KFest Organizers",00
-_c14	asc "      Presenters",00
-_c15	asc "      Attendees",00
-_c16	asc "   AND  YOU!",00
-_c17	asc "THANKS",00
-_c18          asc "      FOR",00
-_c19          asc "         WATCHING",00
-_cblank	asc "",00
-
-_creditStringsTable
-	da _c2,_c3,_c4,_c5,_c6,_c7,_c8,_c9,_c10
-	da _c11,_c12,_cblank,_c13,_c14,_c15,_cblank
-	da _c16,_cblank,_cblank,_c17,_c18,_c19
-	da _cblank,_cblank,_cblank,_cblank,_cblank
-	dw 0000
 
 HandleMapScroll
 	ldx #WorldMapWidth-40
@@ -451,6 +364,7 @@ _defaultStarSpeed equ #$10
 	lda #$1e
 :speedUp	ldx #5
 	pha
+	ldy #0	; nosong
 	jsr StarScrollAuto
 	pla 
 	dec
@@ -459,6 +373,7 @@ _defaultStarSpeed equ #$10
 * full speed
 	ldx #50
 	lda #_defaultStarSpeed
+	ldy #0	; nosong
 	jsr StarScrollAuto
 
 * --- diga
@@ -466,6 +381,7 @@ _defaultStarSpeed equ #$10
 :loop	phx
 	lda #_defaultStarSpeed	; waitfirst
 	jsr SimplerWait
+	jsr VBlank
 	jsr ScrollLeft
 	jsr GenStarRight
 	plx 
@@ -480,6 +396,7 @@ _defaultStarSpeed equ #$10
 	lda #_defaultStarSpeed
 :slowDown	ldx #1
 	pha
+	ldy #0	; nosong
 	jsr StarScrollAuto
 	pla 
 	inc
@@ -488,17 +405,15 @@ _defaultStarSpeed equ #$10
 	inc
 	cmp #8*4+#_defaultStarSpeed 
 	bne :slowDown
-	jsr SErandStatic
-	jsr SErandStatic
-	jsr SErandStatic
-	jsr SErandStatic
+	lda #$30
+	jsr SimplerWait
 
 
 
 * speed up again
 
-	lda #$1e
-:speedUpAgain	ldx #3
+	lda #_defaultStarSpeed+5
+:speedUpAgain	ldx #2
 	pha
 	jsr StarScrollAuto
 	pla 
@@ -506,20 +421,31 @@ _defaultStarSpeed equ #$10
 	cmp #_defaultStarSpeed
 	bne :speedUpAgain ;) 
 
-	ldx #80
+	ldx #220
 	lda #_defaultStarSpeed
+	ldy #1	;SONG
 	jsr StarScrollAuto
 
 * second loop inserts planet
 	ldx #EarthTextWidth
 :loop2	phx
+	jsr VBlank
 	jsr ScrollLeft
 	jsr GenStarRight
 	lda _earthOffset
 	jsr DrawEarthLine
 	inc _earthOffset
 	lda #_defaultStarSpeed
-	jsr SimplerWait
+
+	pha
+	phx
+	phy
+	ldx #$30
+	jsr PlaySong01Note
+	ply
+	plx
+	pla
+	;jsr SimplerWait
 	plx
 	dex
 	bne :loop2
@@ -527,8 +453,10 @@ _defaultStarSpeed equ #$10
 	lda #_defaultStarSpeed
 :slowDownAgain	ldx #1
 	pha
+	ldy #1
 	jsr StarScrollAuto
 	pla 
+	jsr SimplerWait	; extra wait uhg
 	inc
 	inc
 	cmp #$28 
@@ -540,148 +468,29 @@ _defaultStarSpeed equ #$10
 	jmp DemoMain
 _earthOffset	db #$00
 
-* A = wait , X = reps
+* A = wait , X = reps, y=snd
 StarScrollAuto
+	sty _starScrollSound
 	sta _starScrollAutoWait
 :loop	phx
+	jsr VBlank
 	jsr ScrollLeft
 	jsr GenStarRight
+	ldy _starScrollSound
+	beq :noSong
+	ldx #$0F
+	jsr PlaySong01Note
+	bra :skipWait
+:noSong
 	lda _starScrollAutoWait
 	jsr SimplerWait
-	plx
+:skipWait	plx
 	dex
 	bne :loop
 	rts
 _starScrollAutoWait db 0
+_starScrollSound db 0
 
-* Always draws a line on the right
-_drawEarthLineXOffset equ #39
-DrawEarthLine 
-	tax
-	lda EarthTextWidth*0+EarthText,x
-	sta Lo07+_drawEarthLineXOffset
-	lda EarthTextWidth*1+EarthText,x
-	sta Lo08+_drawEarthLineXOffset
-	lda EarthTextWidth*2+EarthText,x
-	sta Lo09+_drawEarthLineXOffset
-	lda EarthTextWidth*3+EarthText,x
-	sta Lo10+_drawEarthLineXOffset
-	lda EarthTextWidth*4+EarthText,x
-	sta Lo11+_drawEarthLineXOffset
-	lda EarthTextWidth*5+EarthText,x
-	sta Lo12+_drawEarthLineXOffset
-	lda EarthTextWidth*6+EarthText,x
-	sta Lo13+_drawEarthLineXOffset
-	lda EarthTextWidth*7+EarthText,x
-	sta Lo14+_drawEarthLineXOffset
-	lda EarthTextWidth*8+EarthText,x
-	sta Lo15+_drawEarthLineXOffset
-	lda EarthTextWidth*9+EarthText,x
-	sta Lo16+_drawEarthLineXOffset
-	rts
-
-GenStarRight
-_maxStarHeight	equ #24	
-:loop	jsr GetRand
-	cmp #_maxStarHeight
-	bge :loop
-:gotMinSize	rol	; *2 for table lookup
-	tax
-	lda LoLineTable,x
-	sta dstPtr
-	lda LoLineTable+1,x
-	sta dstPtr+1
-	ldy #39
-	lda #"."
-	sta (dstPtr),y
-	rts
-
-ScrollLeft	
-	pha
-	phx
-	ldx #0
-:loop	lda Lo01+1,x
-	sta Lo01,x
-	lda Lo02+1,x
-	sta Lo02,x
-	lda Lo03+1,x
-	sta Lo03,x
-	lda Lo04+1,x
-	sta Lo04,x
-	lda Lo05+1,x
-	sta Lo05,x
-	lda Lo06+1,x
-	sta Lo06,x
-	lda Lo07+1,x
-	sta Lo07,x
-	lda Lo08+1,x
-	sta Lo08,x
-	lda Lo09+1,x
-	sta Lo09,x
-	lda Lo10+1,x
-	sta Lo10,x
-	lda Lo11+1,x
-	sta Lo11,x
-	lda Lo12+1,x
-	sta Lo12,x
-	lda Lo13+1,x
-	sta Lo13,x
-	lda Lo14+1,x
-	sta Lo14,x
-	lda Lo15+1,x
-	sta Lo15,x
-	lda Lo16+1,x
-	sta Lo16,x
-	lda Lo17+1,x
-	sta Lo17,x
-	lda Lo18+1,x
-	sta Lo18,x
-	lda Lo19+1,x
-	sta Lo19,x
-	lda Lo20+1,x
-	sta Lo20,x
-	lda Lo21+1,x
-	sta Lo21,x
-	lda Lo22+1,x
-	sta Lo22,x
-	lda Lo23+1,x
-	sta Lo23,x
-	lda Lo24+1,x
-	sta Lo24,x
-	inx 
-	cpx #39 
-	beq :done
-	
-	jmp :loop
-:done	lda #" "
-	sta Lo01,x
-	sta Lo02,x
-	sta Lo03,x
-	sta Lo04,x
-	sta Lo05,x
-	sta Lo06,x
-	sta Lo07,x
-	sta Lo08,x
-	sta Lo09,x
-	sta Lo10,x
-	sta Lo11,x
-	sta Lo12,x
-	sta Lo13,x
-	sta Lo14,x
-	sta Lo15,x
-	sta Lo16,x
-	sta Lo17,x
-	sta Lo18,x
-	sta Lo19,x
-	sta Lo20,x
-	sta Lo21,x
-	sta Lo22,x
-	sta Lo23,x
-	sta Lo24,x
-	plx
-	pla
-	rts
-	
 
 
 HandleLoResInit
@@ -1090,6 +899,7 @@ DrawStringXYWait
 
 	lda _drawWait
 	jsr SimplerWait
+	jsr VBlank
 	bra :loop
 :done	ply
 	plx
@@ -1324,31 +1134,20 @@ _boxY	equ #14
 	beq :doneBox
 	lda #$10
 	jsr SimplerWait
+	lda _boxNote	; sound code
+	ldx #10
+	jsr SENoteAX
+	lda #$10
+	sec
+	sbc _boxNote
+	sta _boxNote
+	jsr VBlank
 	bra :boxExpandLoop
-:doneBox	
+:doneBox	stz _boxNote	;reset
 	rts
-
+_boxNote	db 0
 _gapCounter	db 0
 
-_boxStrTop	asc " _______________________ ",00
-_boxStrMid	asc "|                       |",00
-_boxStrBot	asc "|_______________________|",00
-_scanStr01	asc "STATUS:",00
-_scanStr08	asc "SCANNING",00
-_scanStr08b	asc "        ",00
-_scanStr09	asc "KCMO",00
-_scanStr09b	asc "  .-",00	;lol
-_scanStr02	asc "LOCATED",00
-_scanStr03	asc "Virgo Supergroup,",00
-_scanStr04	asc "Local Group,",00
-_scanStr05	asc "Milky Way,",00
-_scanStr06	asc "Earth",00
-_scanStr07	asc "Scan Surface",00
-_scanStr19	asc "Apple // Event Located",00
-_scanStr20	asc "BEGIN THERMAL SCAN!",00
-_scanStr20b	asc "                   ",00
-_scanningString	asc "Status: Scanning surface.",00
-_digawriteString	asc " an intro by DiGAROK ",00
 
 HandleShortWait
 	lda #$30
@@ -1366,16 +1165,6 @@ HandleMedWait
 	inc GDemoState
 	jmp DemoMain
 
-SetProdropGr
-	lda #$00
-	bra SetProdropChar
-SetProdropText
-	lda #" "
-SetProdropChar	
-	sta ]dropCharCompare
-	sta ]dropCharWrite
-	inc GDemoState
-	jmp DemoMain
 
 
 ** Dropper routine - not specific to ProDrop per se
@@ -1483,6 +1272,7 @@ HandleProdrop
 	tax
 	tay
 	jsr SimpleWait
+	jsr VBlank
 
 
 	lda _prodropAnimDone
@@ -1796,6 +1586,9 @@ HandleAppleDraw
 		
 :donePass	lda #$5
 	jsr SimplerWait
+	ldy #$4
+	jsr SErandStaticBit
+	jsr VBlank
 	lda _appleDone
 	beq :mainLoop
 	lda #$33
@@ -2219,7 +2012,7 @@ ClearLoRes	ldx #40
 	rts 
 
 **************************************************
-* Draw entire buffer on screen
+* Draw entire buffer to lores screen using color map
 **************************************************
 DrawBufFullScreen
 	ldx #$0
@@ -2415,6 +2208,217 @@ DrawBufFullScreen
 	bne :loop23
 	rts
 
+**************************************************
+* Draws a line of earth sprite on the right
+**************************************************
+_drawEarthLineXOffset equ #39
+DrawEarthLine tax
+	lda EarthTextWidth*0+EarthText,x
+	sta Lo07+_drawEarthLineXOffset
+	lda EarthTextWidth*1+EarthText,x
+	sta Lo08+_drawEarthLineXOffset
+	lda EarthTextWidth*2+EarthText,x
+	sta Lo09+_drawEarthLineXOffset
+	lda EarthTextWidth*3+EarthText,x
+	sta Lo10+_drawEarthLineXOffset
+	lda EarthTextWidth*4+EarthText,x
+	sta Lo11+_drawEarthLineXOffset
+	lda EarthTextWidth*5+EarthText,x
+	sta Lo12+_drawEarthLineXOffset
+	lda EarthTextWidth*6+EarthText,x
+	sta Lo13+_drawEarthLineXOffset
+	lda EarthTextWidth*7+EarthText,x
+	sta Lo14+_drawEarthLineXOffset
+	lda EarthTextWidth*8+EarthText,x
+	sta Lo15+_drawEarthLineXOffset
+	lda EarthTextWidth*9+EarthText,x
+	sta Lo16+_drawEarthLineXOffset
+	rts
+
+**************************************************
+* Plot single dot on right column of screen
+**************************************************
+_maxStarHeight	equ #24	
+GenStarRight
+:loop	jsr GetRand
+	cmp #_maxStarHeight
+	bge :loop
+	tay
+	ldx #39	; right column
+	lda #"."
+	jsr PlotXY
+	rts
+:gotMinSize	rol	; *2 for table lookup
+	tax
+	lda LoLineTable,x
+	sta dstPtr
+	lda LoLineTable+1,x
+	sta dstPtr+1
+	ldy #39
+	lda #"."
+	sta (dstPtr),y
+	rts
+
+**************************************************
+* Plot single char (in accumulator) to X,Y
+**************************************************
+PlotXY	pha
+	phx
+	tya
+	asl
+	tax
+	lda LoLineTable,x
+	sta dstPtr
+	lda LoLineTable+1,x
+	sta dstPtr+1
+	ply
+	pla
+	sta (dstPtr),y
+	rts
+
+ScrollLeft	
+	pha
+	phx
+	ldx #0
+:loop	lda Lo01+1,x
+	sta Lo01,x
+	lda Lo02+1,x
+	sta Lo02,x
+	lda Lo03+1,x
+	sta Lo03,x
+	lda Lo04+1,x
+	sta Lo04,x
+	lda Lo05+1,x
+	sta Lo05,x
+	lda Lo06+1,x
+	sta Lo06,x
+	lda Lo07+1,x
+	sta Lo07,x
+	lda Lo08+1,x
+	sta Lo08,x
+	lda Lo09+1,x
+	sta Lo09,x
+	lda Lo10+1,x
+	sta Lo10,x
+	lda Lo11+1,x
+	sta Lo11,x
+	lda Lo12+1,x
+	sta Lo12,x
+	lda Lo13+1,x
+	sta Lo13,x
+	lda Lo14+1,x
+	sta Lo14,x
+	lda Lo15+1,x
+	sta Lo15,x
+	lda Lo16+1,x
+	sta Lo16,x
+	lda Lo17+1,x
+	sta Lo17,x
+	lda Lo18+1,x
+	sta Lo18,x
+	lda Lo19+1,x
+	sta Lo19,x
+	lda Lo20+1,x
+	sta Lo20,x
+	lda Lo21+1,x
+	sta Lo21,x
+	lda Lo22+1,x
+	sta Lo22,x
+	lda Lo23+1,x
+	sta Lo23,x
+	lda Lo24+1,x
+	sta Lo24,x
+	inx 
+	cpx #39 
+	beq :done
+	
+	jmp :loop
+:done	lda #" "
+	sta Lo01,x
+	sta Lo02,x
+	sta Lo03,x
+	sta Lo04,x
+	sta Lo05,x
+	sta Lo06,x
+	sta Lo07,x
+	sta Lo08,x
+	sta Lo09,x
+	sta Lo10,x
+	sta Lo11,x
+	sta Lo12,x
+	sta Lo13,x
+	sta Lo14,x
+	sta Lo15,x
+	sta Lo16,x
+	sta Lo17,x
+	sta Lo18,x
+	sta Lo19,x
+	sta Lo20,x
+	sta Lo21,x
+	sta Lo22,x
+	sta Lo23,x
+	sta Lo24,x
+	plx
+	pla
+	rts
+	
+
+ScrollRightUp 
+	ldx #22	, x start
+
+:loop	lda Lo02,x
+	sta Lo01,x
+	lda Lo03,x
+	sta Lo02,x
+	lda Lo04,x
+	sta Lo03,x
+	lda Lo05,x
+	sta Lo04,x
+	lda Lo06,x
+	sta Lo05,x
+	lda Lo07,x
+	sta Lo06,x
+	lda Lo08,x
+	sta Lo07,x
+	lda Lo09,x
+	sta Lo08,x
+	lda Lo10,x
+	sta Lo09,x
+	lda Lo11,x
+	sta Lo10,x
+	lda Lo12,x
+	sta Lo11,x
+	lda Lo13,x
+	sta Lo12,x
+	lda Lo14,x
+	sta Lo13,x
+	lda Lo15,x
+	sta Lo14,x
+	lda Lo16,x
+	sta Lo15,x
+	lda Lo17,x
+	sta Lo16,x
+	lda Lo18,x
+	sta Lo17,x
+	lda Lo19,x
+	sta Lo18,x
+	lda Lo20,x
+	sta Lo19,x
+	lda Lo21,x
+	sta Lo20,x
+	lda Lo22,x
+	sta Lo21,x
+	lda Lo23,x
+	sta Lo22,x
+	lda Lo24,x
+	sta Lo23,x
+	lda #" "
+	sta Lo24,x
+	inx 
+	cpx #40
+	beq :done
+	jmp :loop
+:done	rts
 
 **************************************************
 * SafeWait
@@ -2428,6 +2432,7 @@ SimplerWait	phx
 	ply
 	plx
 	rts
+
 SimpleWait
 	sta _waitA
 	stx _waitX
@@ -2454,6 +2459,21 @@ _waitA	db 0
 _waitX	db 0
 _waitY	db 0
 
+
+**************************************************
+* SetProdropGr / SetProdropText
+* - set the operating mode of the prodrop effect
+**************************************************
+SetProdropGr
+	lda #$00
+	bra SetProdropChar
+SetProdropText
+	lda #" "
+SetProdropChar	
+	sta ]dropCharCompare
+	sta ]dropCharWrite
+	inc GDemoState
+	jmp DemoMain
 
 
 **************************************************
