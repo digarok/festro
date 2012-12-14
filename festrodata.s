@@ -20,52 +20,70 @@ _digawriteString	asc " an intro by DiGAROK ",00
 
 
 _cwoz	asc "Woz",00
-_c2	asc "Brutal Deluxe",00
-_c3	asc "Belgo",00
-_c4	asc "BLuRry",00
-_c5	asc "krUe",00
-_c6	asc "Ninjaforce",00
-_c7	asc "FTA",00
-_c8	asc "RedHot ;)",00
-_c9	asc "ECC",00
-_c10	asc "antoine",00
-_c11	asc "MJM",00
+_c01	asc "Brutal Deluxe",00
+_c02	asc "Belgo",00
+_c03	asc "BLuRry",00
+_c04	asc "MJM",00
+_c05	asc "krUe",00
+_c06	asc "Ninjaforce",00
+_c07	asc "FTA",00
+_c08	asc "RedHot ;)",00
+_c09	asc "ECC",00
+_c10	asc "A2Central",00
+_c11	asc "R&D Automation",00
 _c12	asc "Gamebits/JuicedGS",00
-_c13	asc "R&D Automation",00
-_c14	asc "KFest Organizers",00
-_c15	asc "      Presenters",00
-_c16	asc "      Attendees",00
-_c17	asc "   AND  YOU!",00
-_c18	asc "THANKS",00
-_c19          asc "      FOR",00
-_c20          asc "         WATCHING",00
-_cblank	asc "",00
+_c13	asc "KFest Organizers",00
+_c14	asc "      Presenters",00
+_c15	asc "      Attendees",00
+_c16	asc "   AND  YOU!",00
+_c17	asc "THANKS",00
+_c18          asc "      FOR",00
+_c19          asc "         WATCHING",00
+_sblank	asc "",00
+_r02	asc "        /\",00                                                        
+_r03	asc "      .'  '.",00                                                 
+_r04	asc "     /======\",00                                              
+_r05	asc "    ;:.  _   ;",00
+_r06	asc "    |:. (_)  |",00
+_r07	asc "    |:.  _   |",00
+_r08	asc "    |:. (_)  |",00                                           
+_r09	asc "    ;:.      ;",00                                                    
+_r10	asc "  .' \:.    / `.",00                                                  
+_r11	asc " / .-'':._.'`-. \",00                                                 
+_r12	asc " |/    /||\    \|",00                                                 
+
 
 _creditStringsTable
-	da _c2,_c3,_c4,_c5,_c6,_c7,_c8,_c9,_c10
-	da _c11,_c12,_cblank,_c13,_c14,_c15,_c16,_cblank
-	da _c17,_cblank,_cblank,_c18,_c19,_c20
-	da _cblank,_cblank,_cblank,_cblank,_cblank
+	da _c01,_c02,_c03,_c04,_c05,_c06,_c07,_c08
+	da _c09,_c10,_c11,_c12,_sblank,_sblank,_c13
+	da _c14,_c15,_sblank,_c16,_sblank,_sblank
+	da _c17,_sblank,_c18,_sblank,_c19
+	da _sblank,_sblank,_sblank,_sblank,_sblank
+	da _sblank,_sblank,_sblank,_sblank,_sblank
+	dw 0000
+_rocketStringsTable
+	da _r02,_r03,_r04,_r05,_r06
+	da _r07,_r06,_r07,_r06,_r07,_r08,_r09,_r10,_r11,_r12
 	dw 0000
 
-FinalText	asc "",00
-	asc " KFest is the world's only annual",00
-	asc " convention dedicated to the Apple II",00
-	asc " and it's the largest gathering of ",00
-	asc " active Apple II users you'll ever see!",00
-	asc "",00
-	asc " The next KFest is July 23-28, 2013.",00
-	asc "",00
-	asc " You can get more info on their site *",00
-	asc "             www.kansasfest.org",00
-	asc "",00
+FinalText	asc " ______________________________________ ",00
+	asc "|                                      |",00
+	asc "| KFest is the world's only annual     |",00
+	asc "| convention dedicated to the Apple II |",00
+	asc "| and the largest gathering of active  |",00
+	asc "| Apple II users you'll ever see!      |",00
+	asc "|                                      |",00
+	asc "| The next KFest is July 23-28, 2013.  |",00
+	asc "| Get more info on their site *        |",00
+	asc "|       www.kansasfest.org             |",00
+	asc "|______________________________________|",00
 	asc "",00
 	asc " * I'm not affiliated with KansasFest.",00
-	asc "   I was just looking for an excuse to",00
-	asc "   write and release some code.",00
+	asc "   I've just been wanting to put out",00
+	asc "   some assembly code for a while.",00
 	asc "",00
 	asc " Download the demo source online!",00
-	asc " -> github.com/festro",00
+	asc " -> https://github.com/digarok/festro",00
 	asc "",00
 	asc "",00
 	asc "                The End?",00

@@ -114,28 +114,29 @@ HandleGreetScroll
 	ldx #23
 	ldy #21
 	lda #$30
-	jsr DrawStringXYWait
+	jsr DrawStringXYWait	; draw woz slowly
 	lda #$30
-	jsr SimplerWait
+	jsr SimplerWait	; extra delay
 
-:loop	jsr ScrollRightUp
+:loop	jsr VBlank
+	jsr ScrollRightUp	; scroll right side of screen
 	inc _creditScrollCounter
 	lda #26
 	jsr SimplerWait
 
 	lda _creditScrollTick
-	cmp #01
+	cmp #_creditSkipLines	; see if we've flipped line counter
 	beq :next
 	inc _creditScrollTick
-	lda #$13
-	jsr SimplerWait
+	lda #$13		; we skip a line
+	jsr SimplerWait	; with a shorter wait tho
 	bra :loop
-:next	stz _creditScrollTick
+:next	stz _creditScrollTick	; reset
 	lda _creditStringIdx
-	asl 
+	asl
 	tax
-	lda _creditStringsTable+1,x
-	beq :noStrings
+	lda _creditStringsTable+1,x	; we know if the high byte is 0, 
+	beq :noStrings	; then we hit the terminator
 	sta srcPtr+1
 	lda _creditStringsTable,x
 	sta srcPtr
@@ -152,14 +153,45 @@ HandleGreetScroll
 	jsr SimplerWait
 :skipWait	lda _creditScrollCounter
 	cmp #80
-	beq :done
+	beq :rocket
 	bra :loop
+
+:rocket	stz _creditScrollCounter
+	stz _creditStringIdx
+:rocketLoop	inc _creditScrollCounter
+	jsr VBlank
+	jsr ScrollRightUp
+	
+	lda _creditStringIdx
+	asl
+	tax
+	lda _rocketStringsTable+1,x	; we know if the high byte is 0, 
+	beq :noStrings2	; then we hit the terminator
+	sta srcPtr+1		; otherwise set screen pointer
+	lda _rocketStringsTable,x
+	sta srcPtr
+
+	inc _creditStringIdx	; line++
+
+	ldx #23
+	ldy #23
+	jsr DrawStringXY	: write line
+
+:noStrings2	lda #25
+	jsr SimplerWait
+	lda _creditScrollCounter
+	cmp #40
+	beq :done
+	bra :rocketLoop
+
+
 
 :done	jmp DemoNext
 
 _creditScrollTick db #$00
 _creditScrollCounter db #$00
 _creditStringIdx db #$00
+_creditSkipLines equ #$01
 
 
 HandleMapScroll
@@ -176,15 +208,15 @@ HandleMapScroll
 	plx 
 	dex
 	bne :scrollLoop
-	ldx #5
+	ldx #9
 :blinkenLoop	phx
-	lda #NoteG0
+	lda #10
 	ldx #$10
-	jsr SEplayNote
+	jsr SENoteAX
 	jsr VBlank
 	lda #" "
 	sta Lo07+16
-	lda #$10
+	lda #20
 	jsr SimplerWait
 	jsr VBlank
 	lda #"*"
@@ -332,7 +364,7 @@ _defaultStarSpeed equ #$10
 	pla
 	inc
 	inc
-	cmp #$28 
+	cmp #$2c	; adjusting this shifts where song ends
 	bne :slowDownAgain	; i take my varibls srs
 	lda #$25
 	jsr SimplerWait
@@ -387,7 +419,7 @@ HandleFireStateK
 	lda #$20
 :loop	ldx #_sprData_K	
 	ldy #>_sprData_K
-	jsr FirePass2	; preserves A,X,Y
+	jsr FirePassSprite	; preserves A,X,Y
 	dec
 	bne :loop
 	jmp DemoNext
@@ -396,7 +428,7 @@ HandleFireStateF
 	lda #$20
 :loop	ldx #_sprData_F	
 	ldy #>_sprData_F
-	jsr FirePass2	; preserves A,X,Y
+	jsr FirePassSprite	; preserves A,X,Y
 	dec
 	bne :loop
 	jmp DemoNext
@@ -405,7 +437,7 @@ HandleFireStateE
 	lda #$20
 :loop	ldx #_sprData_E	
 	ldy #>_sprData_E
-	jsr FirePass2	; preserves A,X,Y
+	jsr FirePassSprite	; preserves A,X,Y
 	dec
 	bne :loop
 	jmp DemoNext
@@ -415,7 +447,7 @@ HandleFireStateS
 	lda #$20
 :loop	ldx #_sprData_S	
 	ldy #>_sprData_S
-	jsr FirePass2	; preserves A,X,Y
+	jsr FirePassSprite	; preserves A,X,Y
 	dec
 	bne :loop
 	jmp DemoNext
@@ -424,7 +456,7 @@ HandleFireStateT
 	lda #$20
 :loop	ldx #_sprData_T	
 	ldy #>_sprData_T
-	jsr FirePass2	; preserves A,X,Y
+	jsr FirePassSprite	; preserves A,X,Y
 	dec
 	bne :loop
 	jmp DemoNext
@@ -445,7 +477,7 @@ HandleFireStateYear
 	lda #$20
 :loop	ldx #_sprData_YEAR	
 	ldy #>_sprData_YEAR
-	jsr FirePass3	; preserves A,X,Y
+	jsr FirePassSpriteBig	; preserves A,X,Y
 	dec
 	bne :loop
 	jmp DemoNext
@@ -457,10 +489,12 @@ RandPop	jsr GetRandHot
 
 
 * A = count X=lowbyte  Y=hibyte
-FirePass2	
+FirePassSprite	
 	pha
 	phx
 	phy
+	ldy #4
+	jsr SErandStaticBit
 	jsr MakeHeat
 	jsr Scroll8
 	jsr RandPop
@@ -474,10 +508,12 @@ FirePass2
 	rts
 
 * A = count X=lowbyte  Y=hibyte
-FirePass3	
+FirePassSpriteBig	
 	pha
 	phx
 	phy
+	ldy #6
+	jsr SErandStaticBit
 	jsr MakeHeat
 	jsr Scroll8
 	jsr RandPop
@@ -1230,8 +1266,6 @@ HandleProdrop
 	bra ]nextAnimChar
 
 ]charFinished
-	lda #1		; SET SOUND ANY TIME NEW CHAR DROPS
-	sta _prodropSound
 	lda #0
 	sta (srcPtr)
 	bra ]nextAnimChar
@@ -1241,6 +1275,9 @@ HandleProdrop
 	lda (srcPtr),y
 	and #%01111111	; clear high bit
 	sta (srcPtr),y
+
+	lda #1		; SET SOUND ANY TIME NEW CHAR DROPS
+	sta _prodropSound
 
 ]nextAnimChar
 	lda srcPtr
@@ -1279,14 +1316,15 @@ _prodropScanLine	db 0	; starts scanning at line 0
 _prodropState	db 0	; starts with 0, which is scan mode
 _prodropSound db 0	; determine if we should call sound engine
 
-soundDownReset lda #10
+_soundDownTopFreq db 2
+soundDownReset lda #_soundDownTopFreq
 	sta _sndFreq
 	rts
 
-_sndFreq	db 10
+_sndFreq	db #_soundDownTopFreq
 _sndInt	db 0
 soundDown	pha	;interval
-	ldx #6
+	ldx #3
 	lda _sndFreq
 	jsr SENoteAX
 	pla
@@ -1458,7 +1496,7 @@ HandleAppleDraw
 	bge :noBlack
 	lda #0
 	bra :noMagic
-:noBlack	cmp #$FA	; had to add in a way to keep it from
+:noBlack	cmp #$F2	; had to add in a way to keep it from
 	blt :noMagic	; getting stuck so now it occasionally puts
 	lda (srcPtr),y	; the right pixel even when it wasn't 
 :noMagic	sta (dstPtr),y              ; found by getrand.  (because it's only pseudorandom)
