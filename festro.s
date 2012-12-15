@@ -80,7 +80,6 @@ DemoSubroutineTable
 	dw SetFireRatio01
 	dw HandleFireState1
 	dw HandleKfestLogo
-	dw HandleMedWait
 	dw HandleShortWait
 	dw HandleSplitSlide
 
@@ -381,7 +380,7 @@ StarScrollAuto
 	jsr GenStarRight
 	ldy _starScrollSound
 	beq :noSong
-	ldx #$0F
+	ldx #$10
 	jsr PlaySong01Note
 	bra :skipWait
 :noSong
@@ -512,8 +511,8 @@ FirePassSpriteBig
 	pha
 	phx
 	phy
-	ldy #6
-	jsr SErandStaticBit
+	ldy #8	; different static for big sprit
+	jsr SErandStaticBit2
 	jsr MakeHeat
 	jsr Scroll8
 	jsr RandPop
@@ -588,7 +587,8 @@ HandleKfestLogo
 	cpx #KfestLogoWidth
 	beq :done
 	jmp :loop
-:done	jmp DemoNext
+:done	jsr PlaySong02
+	jmp DemoNext
 	
 
 HandleSplitSlide
@@ -1183,20 +1183,21 @@ HandleProdrop
 
 * This is the animation loop
 :prodropUpdate
-	lda #0	; finished = false
-	stz _prodropAnimDone
+	stz _prodropAnimDone	; finished = false
 
 :prodropUpdateLoop
 	lda _prodropSound
 	bne :noSound
-	lda #4
+	lda #3	; repeat interval... /
 	jsr soundDown 
+	stz _prodropSound
+	bra :skipDelay
 :noSound	stz _prodropSound ; if this flag gets set we call our sound routine
 	lda #16
 	tax
 	tay
 	jsr SimpleWait
-	jsr VBlank
+:skipDelay	jsr VBlank
 
 
 	lda _prodropAnimDone
@@ -1324,9 +1325,9 @@ soundDownReset lda #_soundDownTopFreq
 _sndFreq	db #_soundDownTopFreq
 _sndInt	db 0
 soundDown	pha	;interval
-	ldx #3
+	ldx #10
 	lda _sndFreq
-	jsr SENoteAX
+	jsr SEToneAX
 	pla
 	cmp _sndInt
 	beq :intMatch

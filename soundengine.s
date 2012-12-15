@@ -37,6 +37,40 @@ Song01	hex 66,99,a3,66,99,a3,66,99,66,99,a3,66,99,a3,66,99
 	hex 02 ;end
 
 **************************************************
+* Logo Theme
+**************************************************
+PlaySong02	
+	ldy #0
+:loop	lda Song02,y
+	cmp #NoteEnd
+	beq :done
+	cmp #NoteRest
+	bne :notRest
+	lda Song02+1,y
+	jsr SimplerWait
+	bra :nextNote
+:notRest	ldx Song02+1,y
+	pha
+	phx
+	phy
+	jsr SENoteAX
+	lda #5
+	jsr SimplerWait
+	jsr VBlank
+	ply
+	plx
+	pla
+:nextNote	iny
+	iny
+	bra :loop
+:done	rts
+Song02	hex 00,30,00,30,00,30,00,30,00,30,F0,30,AC,50,01,30
+	hex 00,30,00,30,00,30,00,30,00,30,F0,30,AC,50,01,30
+	hex 00,30,00,30,00,30,00,30,00,30,F0,30,AC,50,01,30
+	hex F0,40,90,50,CB,60,C0,80,02
+
+
+**************************************************
 * play random short note 
 **************************************************
 SErandBlip
@@ -73,6 +107,18 @@ SEplayNote
 :doneThat	rts
 
 _SECURRNOTE	db 0,0	; current note being played (frequency/duration)
+
+SEToneAX
+:clickLoop
+	pha
+	ldy SPEAKER
+:waitLoop	dec
+	bne :waitLoop
+	pla
+	dex
+	bne :clickLoop
+	rts
+
 
 **************************************************
 * This is essentially the scale
@@ -128,6 +174,17 @@ SErandStaticBit
 :loop	lda SPEAKER
 	jsr GetRand
 	lsr
+	beq :next
+:wait	dec
+	bne :wait
+:next	dey
+	bne :loop
+	rts
+
+* y = length	 - no shift so wider range
+SErandStaticBit2
+:loop	lda SPEAKER
+	jsr GetRand
 	beq :next
 :wait	dec
 	bne :wait
