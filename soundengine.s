@@ -106,6 +106,7 @@ SEplayNote
 	jmp :loop
 :doneThat	rts
 
+
 _SECURRNOTE	db 0,0	; current note being played (frequency/duration)
 
 SEToneAX
@@ -115,6 +116,10 @@ SEToneAX
 :waitLoop	dec
 	bne :waitLoop
 	pla
+	inc	; slide?
+	inc
+	inc
+	inc
 	dex
 	bne :clickLoop
 	rts

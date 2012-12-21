@@ -176,7 +176,7 @@ HandleGreetScroll
 	ldy #23
 	jsr DrawStringXY	: write line
 
-:noStrings2	lda #25
+:noStrings2	lda #20
 	jsr SimplerWait
 	lda _creditScrollCounter
 	cmp #40
@@ -257,6 +257,7 @@ HandleMapScroll
 
 
 
+_starSpeed	db #$10
 HandleStarScroll
 _defaultStarSpeed equ #$10
 	lda #$1e
@@ -380,7 +381,21 @@ StarScrollAuto
 	jsr GenStarRight
 	ldy _starScrollSound
 	beq :noSong
-	ldx #$10
+
+	lda KEY	; dynamically set wait speed for debugging best values
+	cmp #$80
+	bge :key
+	jmp :noKey
+:key          sta STROBE
+	cmp #"."
+	bne :notDot
+	inc _starSpeed
+	bra :noKey
+:notDot	cmp #","
+	bne :noKey
+	dec _starSpeed
+:noKey
+	ldx _starSpeed
 	jsr PlaySong01Note
 	bra :skipWait
 :noSong
@@ -872,7 +887,7 @@ HandleScan01
 	lda #$30
 	jsr SimplerWait
 
-	lda #$05
+	lda #$03
 :flashenLoop	pha
 	lda #_scanStr08	;Scanning
 	sta srcPtr
@@ -1016,7 +1031,7 @@ HandleScan03
 	sta srcPtr+1
 	ldx #_boxX+2
 	ldy #_boxY+6
-	lda #$10
+	lda #$08
 	jsr DrawStringXYWait
 	lda #$20
 	jsr SimplerWait
@@ -1120,7 +1135,7 @@ HandleProdrop
 
 :scanLineLoop
 	lda _prodropScanLine
-	rol	; (line * 2) for table index
+	asl	; (line * 2) for table index
 	tax
 	lda LoLineTable,x
 	sta srcPtr
@@ -1187,13 +1202,15 @@ HandleProdrop
 
 :prodropUpdateLoop
 	lda _prodropSound
-	bne :noSound
-	lda #3	; repeat interval... /
+	beq :noSound
+
+
+	lda #2	; repeat interval... /
 	jsr soundDown 
 	stz _prodropSound
 	bra :skipDelay
 :noSound	stz _prodropSound ; if this flag gets set we call our sound routine
-	lda #16
+	lda #6
 	tax
 	tay
 	jsr SimpleWait
@@ -1223,16 +1240,16 @@ HandleProdrop
 	ldy #2
 	lda (srcPtr),y ; now it's in our y value 
 	cmp #$80	; check for high bit
-	blt ]dropIt	; not set? then we're animating it
-	ldy #3	; check random wait state
+	blt :dropIt	; not set? then we're animating it
+	iny	; check random wait state (y=3)
 	lda (srcPtr),y
 	beq ]setCharAnim	; is 0 so set it to animate on next pass
 	dec	; otherwise decrement wait state
 	sta (srcPtr),y
 	bra ]nextAnimChar
-]dropIt
-	ldy #2
-	lda (srcPtr),y	; get Y value
+:dropIt
+;	ldy #2
+;	lda (srcPtr),y	; get Y value
 	asl
 	tax
 	lda LoLineTable,x	; convert to ZP pointer
@@ -1291,7 +1308,7 @@ HandleProdrop
 
 ]prodropAnimDone
 	jmp DemoNext
-
+_tmpVar	dw 0
 * done = true
 * foreach DSEG0-blahblah
 *  if 00
@@ -1317,7 +1334,7 @@ _prodropScanLine	db 0	; starts scanning at line 0
 _prodropState	db 0	; starts with 0, which is scan mode
 _prodropSound db 0	; determine if we should call sound engine
 
-_soundDownTopFreq db 2
+_soundDownTopFreq db 20
 soundDownReset lda #_soundDownTopFreq
 	sta _sndFreq
 	rts
@@ -1325,7 +1342,7 @@ soundDownReset lda #_soundDownTopFreq
 _sndFreq	db #_soundDownTopFreq
 _sndInt	db 0
 soundDown	pha	;interval
-	ldx #10
+	ldx #25
 	lda _sndFreq
 	jsr SEToneAX
 	pla
@@ -2326,7 +2343,7 @@ GenStarRight
 	lda #"."
 	jsr PlotXY
 	rts
-:gotMinSize	rol	; *2 for table lookup
+:gotMinSize	asl	; *2 for table lookup
 	tax
 	lda LoLineTable,x
 	sta dstPtr
