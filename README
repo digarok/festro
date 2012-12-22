@@ -18,4 +18,7 @@ Download the FESTRO.dsk file and transfer it to a floppy (ADTPro, etc) and boot 
 
 
 
+Code:
+The code quality isn't great, but I've got to move on.  There are a lot of individual parts that are totally fine and perfectly well laid-out and easy to understand.  Then there are other parts that are hacked in a bit (I just threw in sound at the last minute), poorly commented, and so on.  I'm not beating up on it though, as I'm happy with the final result.  I got to verify my theory that I could do a fullscreen fire effect at a reasonable framerate on a stock Apple IIe.  I would have loved to try a double-low resolution version of the fire, or add some high-resolution effects to the demo, but again, I've got to move on.
 
+Thanks!
