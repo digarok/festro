@@ -1,0 +1,16 @@
+What: This is an audio visual demonstration program for the Apple II computer.  It's in the vein of a demoscene intro and the theme is based on KansasFest, which is an annual conference of Apple II enthusiasts.
+
+Why: I had wanted to release the code for the fire effect and I decided to make a little demo out of it.  I also was hoping I might raise a little awareness for the KansasFest event. 
+
+Who: Originally by Digarok (Dagen Brock), but it's intentionally on github so that anyone can add on more to it, or take the effects and tweak or improve them, etc.
+
+When: Initially release December 21st of 2012, though you'll note this is for the upcoming event in 2013.
+
+How: Written in 65c02 Assembly, targeted for compilation using Merlin 8/16+.  Not included are some tools to generate the "sprites" and such. 
+
+
+
+
+
+
+
