@@ -10,6 +10,11 @@ How: Written in 65c02 Assembly, targeted for compilation using Merlin 8/16+.  No
 
 
 
+RUNNING THE DEMO IN AN EMULATOR
+Download the FESTRO.dsk file and boot it up in any Apple II emulator.  
+
+RUNNING THE DEMO ON A REAL APPLE II
+Download the FESTRO.dsk file and transfer it to a floppy (ADTPro, etc) and boot it up in the disk drive of your Apple II ... OR ... transfer it to your CFFA-type device (something that can boot images directly) and boot that.
 
 
 
